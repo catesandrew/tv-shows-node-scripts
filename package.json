@@ -1,0 +1,15 @@
+{
+  "name": "tvshows-node-scripts",
+  "version": "0.0.1",
+  "engines": {
+    "node": "0.6.14",
+    "npm":  "1.1.9"
+  },
+  "dependencies": {
+    "async": "~0.1",
+    "request": "~2.1.1",
+    "handlebars": "latest",
+    "node.io": "latest",
+    "underscore": "latest"
+  }
+}

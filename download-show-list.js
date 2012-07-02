@@ -125,11 +125,13 @@ var scrapeEZTV = function(_callback) {
       var self = this;
       this.getHtml('http://eztv.it/showlist/', function(err, $) {
           var shows = [], href, matches;
-          $('a.thread_link').each(function(anchor) {
-            //matches = href.match(/\/shows\/([0-9]+)\/([a-zA-Z\-]+)/);
+          $("tr[name]").each(function(tr) {
+            var anchor = $('.thread_link', tr);
+            var font = $('.forum_thread_post font', tr);
             shows.push({
               href:anchor.attribs.href,
-              text:anchor.text
+              text:anchor.text,
+              status:font.text
             });
           });
           this.emit(shows);
@@ -143,6 +145,7 @@ var scrapeEZTV = function(_callback) {
         emit.push({
           showId: matches[1],
           title: show.text,
+          status: show.status,
           name:matches[2]
         });
       });

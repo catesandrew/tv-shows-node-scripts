@@ -10,6 +10,8 @@
     "request": "~2.1.1",
     "handlebars": "latest",
     "node.io": "latest",
+    "optimist": "latest",
+    "plist": "latest",
     "underscore": "latest"
   }
 }

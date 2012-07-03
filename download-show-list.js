@@ -371,7 +371,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
   var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
   writePlist(function(err, obj) {
     if (err) { console.log(err); }
-    console.log(obj);
+    //console.log(obj);
     
     }, save_these_shows, tv_shows_db
   );

@@ -38,7 +38,7 @@ var readPlist = function(callback, path) {
 
       try {
         // Query the entry
-        var stats = fs.lstatSync(safe_path);
+        var stats = fs.lstatSync(path);
 
         if (stats.isFile()) {
           exec('plutil -convert xml1 ' + safe_path, 
@@ -130,8 +130,8 @@ var scrapeEZTV = function(_callback) {
             var font = $('.forum_thread_post font', tr);
             shows.push({
               href:anchor.attribs.href,
-              text:anchor.text,
-              status:font.text
+              text:anchor.fulltext,
+              status:font.fulltext
             });
           });
           this.emit(shows);
@@ -145,7 +145,7 @@ var scrapeEZTV = function(_callback) {
         emit.push({
           showId: matches[1],
           title: show.text,
-          status: show.status,
+          Status: show.status,
           name:matches[2]
         });
       });
@@ -177,7 +177,7 @@ var readPlistsAndScrapeEZTV = function(callback) {
         scrapeEZTV(function(err, shows) {
           if (err) { callback(err); }
 
-          console.log("found " + shows.length + " shows.");
+          //console.log("found " + shows.length + " shows.");
           callback(null, shows);
         });
       },
@@ -225,8 +225,6 @@ readPlistsAndScrapeEZTV(function(err, data) {
     //} 
   //}
 
-
-  //console.log(data.plists.showDb.Shows[0]);
   //console.log(data.plists.showDb.Shows[1]);
   //console.log(data.plists.showDb.Shows[2]);
   // 
@@ -238,7 +236,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
   //{ ExactName: '10+O+Clock+Live', HumanName: '10 O Clock Live', Subscribed: false, Type: '' }
   //{ ExactName: '10+OClock+Live', HumanName: '10 OClock Live', Subscribed: false, Type: '' }
 
-  var incoming = {}, i, l;
+  var incoming_shows = {}, i, l;
   var shows = data.shows || []; 
   for( i=0, l= shows.length; i<l; i++) {
     var show = shows[i];
@@ -289,7 +287,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
       //console.log( exact_name + " != " + show.name);
     //}
 
-    incoming[exact_name]= show;
+    incoming_shows[exact_name]= show;
   }
 
   var known_shows = {};
@@ -313,7 +311,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
     // trim spaces
     exact_name = exact_name.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
 
-    var lookForTheAtEnd = exact_name.match(/ The$/);
+    lookForTheAtEnd = exact_name.match(/ The$/);
     if (lookForTheAtEnd) {
       exact_name = "The " + exact_name.substr(0, exact_name.length - 4);
     }
@@ -329,18 +327,34 @@ readPlistsAndScrapeEZTV(function(err, data) {
       .replace(/:/g,'')
       .replace(/!/g,'')
       .replace(/\./g,'')
-      .replace(/\?/g,'')
+      .replace(/\?/g,'');
 
     known_shows[exact_name]= Show;
   }
 
-  // walk through incoming and known_shows to see if any of
-  // incoming's entries match ones from known_shows. 
-  if (known_shows.length > 0) {
+  // walk through incoming_shows and known_shows to see if any of
+  // incoming_show's entries match ones from known_shows. 
+  if (_.size(known_shows) > 0) {
     var shows_to_add = [];
-    //for( i=0, l=.length; i<l; i++) {
+    var keys = _.keys(incoming_shows);
+    for( i=0, l=keys.length; i<l; i++) {
+      if (!known_shows[keys[i]]) {
+        shows_to_add.push(incoming_shows[keys[i]]);
+      } else {
+        // Could add properties from incoming shows 
+        // like Status to previous known_shows entry
+      }
+    }
+    
+    // drop the keys of known_shows and use it as an array
+    known_shows = _.values(known_shows);
 
-    //}
+    // merge the shows_to_add to known_shows
+    for( i=0, l=shows_to_add.length; i<l; i++) {
+      known_shows.push(shows_to_add[i]);
+    } 
+    // set shows to known_shows
+    shows = known_shows;
   }
 
   var save_these_shows = {
@@ -353,11 +367,13 @@ readPlistsAndScrapeEZTV(function(err, data) {
   });
 
   save_these_shows.Shows = shows;
+  var home = process.env.HOME;
+  var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
   writePlist(function(err, obj) {
     if (err) { console.log(err); }
     console.log(obj);
     
-    }, save_these_shows, "testing.plist"
+    }, save_these_shows, tv_shows_db
   );
 
 });

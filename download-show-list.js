@@ -10,6 +10,7 @@ var async = require('async')
   , exec = require('child_process').exec;
 
 var constants = require('./tv-shows-constants.js').constants;
+var utils = require('./utils.js').utils;
 
 var writePlist = function(callback, obj, output) {
 
@@ -238,6 +239,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
 
   var incoming_shows = {}, i, l;
   var shows = data.shows || []; 
+  var unique_name_fit_for_key;
   for( i=0, l= shows.length; i<l; i++) {
     var show = shows[i];
     var human_name = show.title;
@@ -245,91 +247,17 @@ readPlistsAndScrapeEZTV(function(err, data) {
     show.HumanName = human_name;
     delete show.title;
     delete show.name;
-    var exact_name = human_name.split(', The');
-    if (exact_name.length > 1) {
-      exact_name = 'The ' + exact_name[0];
-    } else {
-      exact_name = exact_name[0];
-
-      exact_name = human_name.split(', A');
-      if (exact_name.length > 1) {
-        exact_name = 'A ' + exact_name[0];
-      } else {
-        exact_name = exact_name[0];
-      }
-    }
-
-    // trim spaces
-    exact_name = exact_name.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
-
-    var lookForTheAtEnd = exact_name.match(/ The$/);
-    if (lookForTheAtEnd) {
-      exact_name = "The " + exact_name.substr(0, exact_name.length - 4);
-    }
-
-    exact_name = exact_name
-      .replace(/\(/g,'')
-      .replace(/\)/g,'')
-      .replace(/\'/g,'')
-      .replace(/\//g,'-')
-      .replace(/#/g,'')
-      .replace(/:/g,'')
-      .replace(/!/g,'')
-      .replace(/\./g,'')
-      .replace(/\?/g,'');
-
-    show.ExactName = exact_name.replace(/ /g, '+');
-    exact_name = exact_name
-      .toLowerCase()
-      .replace(/ /g,'-');
-
-    //if(exact_name !== show.name) {
-      //console.log( exact_name + " != " + show.name);
-    //}
-
-    incoming_shows[exact_name]= show;
+    show.ExactName = utils.buildExactNameForBackwardsCompatibility(human_name);
+    unique_name_fit_for_key = utils.buildUniqueIdName(human_name);
+    incoming_shows[unique_name_fit_for_key] = show;
   }
 
   var known_shows = {};
   var Shows = data.plists.showDb.Shows || [];
   for( i=0, l=Shows.length; i<l; i++) {
     var Show = Shows[i];
-    exact_name = Show.HumanName.split(', The');
-    if (exact_name.length > 1) {
-      exact_name = 'The ' + exact_name[0];
-    } else {
-      exact_name = exact_name[0];
-
-      exact_name = Show.HumanName.split(', A');
-      if (exact_name.length > 1) {
-        exact_name = 'A ' + exact_name[0];
-      } else {
-        exact_name = exact_name[0];
-      }
-    }
-
-    // trim spaces
-    exact_name = exact_name.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
-
-    lookForTheAtEnd = exact_name.match(/ The$/);
-    if (lookForTheAtEnd) {
-      exact_name = "The " + exact_name.substr(0, exact_name.length - 4);
-    }
-
-    exact_name = exact_name
-      .toLowerCase()
-      .replace(/ /g,'-')
-      .replace(/\(/g,'')
-      .replace(/\)/g,'')
-      .replace(/\'/g,'')
-      .replace(/\//g,'-')
-      .replace(/#/g,'')
-      .replace(/:/g,'')
-      .replace(/!/g,'')
-      .replace(/\./g,'')
-      .replace(/\?/g,'');
-
-    known_shows[exact_name]= Show;
+    unique_name_fit_for_key = utils.buildUniqueIdName(Show.HumanName);
+    known_shows[unique_name_fit_for_key]= Show;
   }
 
   // walk through incoming_shows and known_shows to see if any of

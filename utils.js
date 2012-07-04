@@ -154,6 +154,34 @@ var filename_patterns = [
   }
 ]; 
 
+var trimCommaSpaceTheOrA=function(name){
+  var exact_name = name.split(', The');
+  if (exact_name.length > 1) {
+    exact_name = 'The ' + exact_name[0];
+  } else {
+    // it did not split b/c it was not found at end
+    exact_name = exact_name[0];
+    // retry with trying to find A at the end
+    // TODO: check for ', An' at end
+    exact_name = exact_name.split(', A');
+    if (exact_name.length > 1) {
+      exact_name = 'A ' + exact_name[0];
+    } else {
+      // again, it was not found so reset 
+      exact_name = exact_name[0];
+    }
+  }
+
+  // trim spaces
+  exact_name = exact_name.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+
+  lookForTheAtEnd = exact_name.match(/ The$/);
+  if (lookForTheAtEnd) {
+    exact_name = "The " + exact_name.substr(0, exact_name.length - 4);
+  }
+  return exact_name;
+};
+
 var Utils = function(){
 };
 Utils.prototype = {
@@ -363,6 +391,43 @@ Utils.prototype = {
       }
     }
     callback("Cannot parse " + file);
+  },
+  buildExactNameForBackwardsCompatibility:function(name) {
+    name = name || "";
+    name = trimCommaSpaceTheOrA(name);
+
+    name = name
+      .replace(/\(/g,'')
+      .replace(/\)/g,'')
+      .replace(/\'/g,'')
+      .replace(/\//g,'-')
+      .replace(/#/g,'')
+      .replace(/:/g,'')
+      .replace(/!/g,'')
+      .replace(/\./g,'')
+      .replace(/\?/g,'')
+      .replace(/ /g, '+');
+
+    return name;
+  },
+  buildUniqueIdName:function(name) {
+    name = name || "";
+    name = trimCommaSpaceTheOrA(name);
+
+    name = name
+      .toLowerCase()
+      .replace(/ /g,'-')
+      .replace(/\(/g,'')
+      .replace(/\)/g,'')
+      .replace(/\'/g,'')
+      .replace(/\//g,'-')
+      .replace(/#/g,'')
+      .replace(/:/g,'')
+      .replace(/!/g,'')
+      .replace(/\./g,'')
+      .replace(/\?/g,'');
+
+    return name;
   }
 };
 var utils = new Utils();

@@ -155,6 +155,8 @@ if (args && args.length > 0) {
   readPlistsAndScrapeEZTV(function(err, data) {
     if (err) { console.log(err); }
 
+    console.log(data);
+
     //_.each(data.episodes, function(episode) {
       //console.log(episode.toString());
       //console.log(episode.getepdata());

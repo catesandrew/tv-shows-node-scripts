@@ -1,12 +1,8 @@
 var async = require('async')
   , fs = require('fs')
-  , handlebars = require('handlebars')
-  , request = require('request')
   , _ = require('underscore')
   , plist = require('plist')
   , nodeio = require('node.io')
-  , argv = require('optimist').argv
-  , util = require('util')
   , exec = require('child_process').exec;
 
 var constants = require('./tv-shows-constants.js').constants;
@@ -152,50 +148,32 @@ var readPlistsAndScrapeEZTV = function(callback, showId) {
     });
 };
 
-readPlistsAndScrapeEZTV(function(err, data) {
-  if (err) { console.log(err); }
+var args = process.argv.slice(2);
+if (args && args.length > 0) {
+  var showId = args[0];
 
-  var TVDB = require('tvdb')
-    , tvdb = new TVDB({
-        apiKey: "0629B785CE550C8D",
-        language: "en"
-      });
+  readPlistsAndScrapeEZTV(function(err, data) {
+    if (err) { console.log(err); }
 
- 
-  _.each(data.episodes, function(episode) {
-    //console.log(episode.toString());
-    //console.log(episode.getepdata());
-  });
-
-  var maxSeason = 0, maxEpisode = 0;
-  var seasonNo, episodeNo, epData;
-  _.each(data.episodes, function(episode) {
-    epData = episode.getepdata();
-    seasonNo = epData.seasonnumber;
-    episodeNo = epData.episode;
-
-    if ( (maxSeason === seasonNo && maxEpisode < episodeNo) || (maxSeason < seasonNo)) {
-      maxSeason = seasonNo;
-      maxEpisode = episodeNo;
-    }
-
-  });
-
-  console.log("#{"+maxSeason+"}-#{"+maxEpisode+"}");
-  
-  //scrapeEZTV(function(err, episodes) {
-    //if (err) { console.log(err); }
-
-    //console.log(episodes.length);
-    //_.each(episodes, function(episode) {
+    //_.each(data.episodes, function(episode) {
       //console.log(episode.toString());
+      //console.log(episode.getepdata());
     //});
-    //if (episodes.length) {
-      ////console.log(episodes[0].toString());
-      ////episodes[0].populateFromTvDb(tvdb);
-    //}
-  //}, showId);
 
-}, 1);
+    var maxSeason = 0, maxEpisode = 0;
+    var seasonNo, episodeNo, epData;
+    _.each(data.episodes, function(episode) {
+      epData = episode.getepdata();
+      seasonNo = epData.seasonnumber;
+      episodeNo = epData.episode;
 
+      if ( (maxSeason === seasonNo && maxEpisode < episodeNo) || (maxSeason < seasonNo)) {
+        maxSeason = seasonNo;
+        maxEpisode = episodeNo;
+      }
 
+    });
+
+    console.log("#{"+maxSeason+"}-#{"+maxEpisode+"}");
+  }, showId);
+}

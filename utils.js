@@ -1,4 +1,8 @@
-var _ = require('underscore');
+var async = require('async')
+  , fs = require('fs')
+  , _ = require('underscore')
+  , plist = require('plist')
+  , exec = require('child_process').exec;
 
 // .+?\s which translates to: "One or more of any character 
 // but as soon as a space is encountered, stop!"
@@ -180,6 +184,43 @@ var trimCommaSpaceTheOrA=function(name){
     exact_name = "The " + exact_name.substr(0, exact_name.length - 4);
   }
   return exact_name;
+};
+
+var readPlist = function(callback, path) {
+  async.series([
+    function(callback){
+      path = path || "";
+      var safe_path = path.replace(' ', '\\ ');
+
+      try {
+        // Query the entry
+        var stats = fs.lstatSync(path);
+
+        if (stats.isFile()) {
+          exec('plutil -convert xml1 ' + safe_path, 
+            function (err, stdout, stderr) {
+              if (err) { callback(err); }
+              callback(null);
+          });
+        }
+      } 
+      catch (e) {
+        callback(e);
+      }
+    },
+    function(callback){
+      plist.parseFile(path, function(err, obj) {
+        if (err) { callback(err); }
+        callback(null, obj);
+      });
+    },
+  ],
+  function(err, results){
+    if (err) { callback(err); }
+    if (results.length > 1) {
+      callback(null, results[1]);
+    }
+  });
 };
 
 var Utils = function(){
@@ -428,6 +469,65 @@ Utils.prototype = {
       .replace(/\?/g,'');
 
     return name;
+  },
+  readPlists:function(callback) {
+    async.parallel({
+      userPrefs: function(callback) {
+        var home = process.env.HOME;
+        var user_prefs_file = home + "/Library/Preferences/net.sourceforge.tvshows.plist";
+        readPlist(function(err, data) {
+          //if (err) { callback(err); }
+          if (err) {
+            callback(null, {});
+          } 
+          else if (data) {
+            if (data.length > 0) {
+              callback(null, data[0]);
+            } else {
+              callback(null, data);
+            }
+          }
+        }, user_prefs_file);
+      },
+      showDb: function(callback) {
+        var home = process.env.HOME;
+        var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
+        readPlist(function(err, data) {
+          //if (err) { callback(err); }
+          if (err) {
+            callback(null, {});
+          } 
+          else if (data) {
+            if (data.length > 0) {
+              callback(null, data[0]);
+            } else {
+              callback(null, data);
+            }
+          }
+        }, tv_shows_db);
+      }
+    }, 
+    function(err, results) {
+      if (err) { callback(err); }
+      callback(null, results);
+    });
+  },
+  writePlist:function(callback, obj, output) {
+    var headers = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
+      '<plist version="1.0">'
+    ];
+        
+    var data = 
+      headers.join('\n') +
+      plist.stringify(obj) + 
+      "\n</plist>";
+
+    fs.writeFile(output, data, function (err) {
+      if (err) { callback(err); }
+      callback(null, 'successfully saved file to ' + output);
+    });
   }
 };
 var utils = new Utils();

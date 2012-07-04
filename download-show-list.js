@@ -1,123 +1,10 @@
 var async = require('async')
   , fs = require('fs')
-  , handlebars = require('handlebars')
-  , request = require('request')
   , _ = require('underscore')
-  , plist = require('plist')
-  , nodeio = require('node.io')
-  , argv = require('optimist').argv
-  , util = require('util')
-  , exec = require('child_process').exec;
+  , nodeio = require('node.io');
 
 var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
-
-var writePlist = function(callback, obj, output) {
-
-  var headers = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
-    '<plist version="1.0">'
-  ];
-      
-  var data = 
-    headers.join('\n') +
-    plist.stringify(obj) + 
-    "\n</plist>";
-
-  fs.writeFile(output, data, function (err) {
-    if (err) { callback(err); }
-    callback(null, 'successfully saved file to ' + output);
-  });
-};
-
-var readPlist = function(callback, path) {
-  async.series([
-    function(callback){
-      path = path || "";
-      var safe_path = path.replace(' ', '\\ ');
-
-      try {
-        // Query the entry
-        var stats = fs.lstatSync(path);
-
-        if (stats.isFile()) {
-          exec('plutil -convert xml1 ' + safe_path, 
-            function (err, stdout, stderr) {
-              if (err) { callback(err); }
-              callback(null);
-          });
-        }
-      } 
-      catch (e) {
-        callback(e);
-      }
-    },
-    function(callback){
-      plist.parseFile(path, function(err, obj) {
-        if (err) { callback(err); }
-        callback(null, obj);
-      });
-    },
-  ],
-  function(err, results){
-    if (err) { callback(err); }
-    if (results.length > 1) {
-      callback(null, results[1]);
-    }
-  });
-};
-
-var readPlists = function(callback) {
-  async.parallel({
-      userPrefs: function(callback) {
-        var home = process.env.HOME;
-        var user_prefs_file = home + "/Library/Preferences/net.sourceforge.tvshows.plist";
-        readPlist(function(err, data) {
-          //if (err) { callback(err); }
-          if (err) {
-            callback(null, {});
-          } 
-          else if (data) {
-            if (data.length > 0) {
-              callback(null, data[0]);
-            } else {
-              callback(null, data);
-            }
-          }
-        }, user_prefs_file);
-      },
-      showDb: function(callback) {
-        var home = process.env.HOME;
-        var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
-        readPlist(function(err, data) {
-          //if (err) { callback(err); }
-          if (err) {
-            callback(null, {});
-          } 
-          else if (data) {
-            if (data.length > 0) {
-              callback(null, data[0]);
-            } else {
-              callback(null, data);
-            }
-          }
-        }, tv_shows_db);
-      }
-    }, 
-    function(err, results) {
-      if (err) { callback(err); }
-      callback(null, results);
-    });
-};
-
-//readPlists(function(err, plist) {
-  //if (err) { 
-    //console.log(err);
-    //process.exit();
-  //}
-  
-//});
 
 var scrapeEZTV = function(_callback) {
   var methods = {
@@ -164,14 +51,6 @@ var scrapeEZTV = function(_callback) {
   }, true);
 };
 
-//scrapeEZTV(function(err, shows) {
-  //if (err) { 
-    //console.log(err);
-    //process.exit();
-  //}
-  //console.log("found " + shows.length + " shows.");
-//});
-
 var readPlistsAndScrapeEZTV = function(callback) {
   async.parallel({
       shows: function(callback) {
@@ -183,7 +62,7 @@ var readPlistsAndScrapeEZTV = function(callback) {
         });
       },
       plists: function(callback) {
-        readPlists(function(err, plist) {
+        utils.readPlists(function(err, plist) {
           if (err) { callback(err); }
           callback(null, plist);
         });
@@ -297,7 +176,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
   save_these_shows.Shows = shows;
   var home = process.env.HOME;
   var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
-  writePlist(function(err, obj) {
+  utils.writePlist(function(err, obj) {
     if (err) { console.log(err); }
     //console.log(obj);
     

@@ -1,92 +1,10 @@
 var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
-  , plist = require('plist')
-  , nodeio = require('node.io')
-  , exec = require('child_process').exec;
+  , nodeio = require('node.io');
 
 var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
-
-var readPlist = function(callback, path) {
-  async.series([
-    function(callback){
-      path = path || "";
-      var safe_path = path.replace(' ', '\\ ');
-
-      try {
-        // Query the entry
-        var stats = fs.lstatSync(path);
-
-        if (stats.isFile()) {
-          exec('plutil -convert xml1 ' + safe_path, 
-            function (err, stdout, stderr) {
-              if (err) { callback(err); }
-              callback(null);
-          });
-        }
-      } 
-      catch (e) {
-        callback(e);
-      }
-    },
-    function(callback){
-      plist.parseFile(path, function(err, obj) {
-        if (err) { callback(err); }
-        callback(null, obj);
-      });
-    },
-  ],
-  function(err, results){
-    if (err) { callback(err); }
-    if (results.length > 1) {
-      callback(null, results[1]);
-    }
-  });
-};
-
-var readPlists = function(callback) {
-  async.parallel({
-      userPrefs: function(callback) {
-        var home = process.env.HOME;
-        var user_prefs_file = home + "/Library/Preferences/net.sourceforge.tvshows.plist";
-        readPlist(function(err, data) {
-          //if (err) { callback(err); }
-          if (err) {
-            callback(null, {});
-          } 
-          else if (data) {
-            if (data.length > 0) {
-              callback(null, data[0]);
-            } else {
-              callback(null, data);
-            }
-          }
-        }, user_prefs_file);
-      },
-      showDb: function(callback) {
-        var home = process.env.HOME;
-        var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
-        readPlist(function(err, data) {
-          //if (err) { callback(err); }
-          if (err) {
-            callback(null, {});
-          } 
-          else if (data) {
-            if (data.length > 0) {
-              callback(null, data[0]);
-            } else {
-              callback(null, data);
-            }
-          }
-        }, tv_shows_db);
-      }
-    }, 
-    function(err, results) {
-      if (err) { callback(err); }
-      callback(null, results);
-    });
-};
 
 var scrapeEZTV = function(_callback, showId) {
   var methods = {
@@ -130,7 +48,7 @@ var scrapeEZTV = function(_callback, showId) {
 var readPlistsAndScrapeEZTV = function(callback, showId) {
   async.parallel({
       plists: function(callback) {
-        readPlists(function(err, plist) {
+        utils.readPlists(function(err, plist) {
           if (err) { callback(err); }
           callback(null, plist);
         });
@@ -154,8 +72,6 @@ if (args && args.length > 0) {
 
   readPlistsAndScrapeEZTV(function(err, data) {
     if (err) { console.log(err); }
-
-    console.log(data);
 
     //_.each(data.episodes, function(episode) {
       //console.log(episode.toString());

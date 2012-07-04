@@ -245,6 +245,63 @@ var filename_patterns = [
   }
 ]; 
 
+var formatEpisodeNumbers = function(episodenumbers){
+  // Format episode number(s) into string, using configured values
+  
+  var epno;
+  if (episodenumbers.length === 1){ 
+    epno = ('00' + episodenumbers[0]).slice(-2);
+  } else {
+    var copy = _.map(episodenumbers, function(num) {
+      return ('00' + num).slice(-2);
+    });
+    return copy.join('-');
+  }
+
+  return epno;
+};
+
+var formatEpisodeName = function(names, join_with){
+  //Takes a list of episode names, formats them into a string.
+  //If two names are supplied, such as "Pilot (1)" and "Pilot (2)", the
+  //returned string will be "Pilot (1-2)"
+
+  //If two different episode names are found, such as "The first", and
+  //"Something else" it will return "The first, Something else"
+    
+  if (names.length === 1){
+    return names[0];
+  }
+
+  var found_names = [],
+      number, numbers = [];
+
+  _.each(names, function(cname){
+    number = cname.match(/(.*) \(?:([0-9]+)\)$/);
+    if ( number ) {
+      var epname = number[1], 
+          epno = number[2];
+      if (( found_names.length > 0 ) && ( _.indexOf(found_names, epname) < 0 )) {
+        return join_with.join(names);
+      }
+      found_names.push(epname);
+      numbers.push(parseInt(epno, 10));
+    }
+    else {
+      // An episode didn't match
+      return join_with.join(names);
+    }
+  });
+
+  var retval_names = [];
+  var start = Math.min(numbers),
+      end = Math.max(numbers);
+
+  retval_names.push(""+found_names[0]+" ("+start +"-"+end+")");
+
+  return join_with.join(retval_names);
+};
+
 var handleYear = function(year) {
   // Handle two-digit years with heuristic-ish guessing
   // Assumes 50-99 becomes 1950-1999, and 0-49 becomes 2000-2049
@@ -408,33 +465,26 @@ var scrapeEZTV = function(_callback, showId) {
     run:function() {
       var self = this;
       this.getHtml('http://eztv.it/shows/' + showId + "/", function(err, $) {
-          var shows = [], href, matches;
+          var episodes = [], href, matches;
           $(".forum_header_noborder tr[name]").each(function(tr) {
             var anchor = $('.forum_thread_post .epinfo', tr);
-            shows.push({
+            episodes.push({
               href:anchor.attribs.href,
               text:anchor.fulltext
             });
           });
-          this.emit(shows);
+          this.emit(episodes);
       });
     },
     reduce:function(episodes) {
       var emit = [];
-      parseFile(function(err, episode) {
-        if (err) { _callback(err); }
-
-        emit.push(episode);
-      }, episodes[0].text);
+      episodes.forEach(function(episode) {
+        parseFile(function(err, episode) {
+          if (err) { _callback(err); }
+          emit.push(episode);
+        }, episode.text);
+      });
       this.emit(emit);
-
-      //var emit = [], href, matches;
-      //episodes.forEach(function(episode) {
-        //emit.push({
-          //name: episode.text
-        //});
-      //});
-      //this.emit(emit);
     },
     complete: function(callback) {
       callback();
@@ -448,13 +498,19 @@ var scrapeEZTV = function(_callback, showId) {
   }, true);
 };
 
-var readPlistsAndScrapeEZTV = function(callback) {
+var readPlistsAndScrapeEZTV = function(callback, showId) {
   async.parallel({
       plists: function(callback) {
         readPlists(function(err, plist) {
           if (err) { callback(err); }
           callback(null, plist);
         });
+      },
+      episodes: function(callback) {
+        scrapeEZTV(function(err, episodes) {
+          if (err) { callback(err); }
+          callback(null, episodes);
+        }, showId);
       }
     }, 
     function(err, results) {
@@ -465,36 +521,193 @@ var readPlistsAndScrapeEZTV = function(callback) {
 
 readPlistsAndScrapeEZTV(function(err, data) {
   if (err) { console.log(err); }
+
+  var TVDB = require('tvdb')
+    , tvdb = new TVDB({
+        apiKey: "0629B785CE550C8D",
+        language: "en"
+      });
+
  
-  var showId = 1; // 24
-  scrapeEZTV(function(err, episodes) {
-    if (err) { console.log(err); }
+  _.each(data.episodes, function(episode) {
+    //console.log(episode.toString());
+    //console.log(episode.getepdata());
+  });
 
-    //console.log(episodes);
-    //console.log("found " + episodes.length + " episodes.");
+  var maxSeason = 0, maxEpisode = 0;
+  var seasonNo, episodeNo, epData;
+  _.each(data.episodes, function(episode) {
+    epData = episode.getepdata();
+    seasonNo = epData.seasonnumber;
+    episodeNo = epData.episode;
 
-  }, showId);
+    if ( (maxSeason === seasonNo && maxEpisode < episodeNo) || (maxSeason < seasonNo)) {
+      maxSeason = seasonNo;
+      maxEpisode = episodeNo;
+    }
 
-  var showId = 2; // 30 Rock
-  scrapeEZTV(function(err, episodes) {
-    if (err) { console.log(err); }
+  });
 
-    //console.log(episodes);
-    //console.log("found " + episodes.length + " episodes.");
+  console.log("#{"+maxSeason+"}-#{"+maxEpisode+"}");
+  
+  //scrapeEZTV(function(err, episodes) {
+    //if (err) { console.log(err); }
 
-  }, showId);
+    //console.log(episodes.length);
+    //_.each(episodes, function(episode) {
+      //console.log(episode.toString());
+    //});
+    //if (episodes.length) {
+      ////console.log(episodes[0].toString());
+      ////episodes[0].populateFromTvDb(tvdb);
+    //}
+  //}, showId);
 
-});
+}, 1);
+
 
 var EpisodeInfo = function(opts) {
+  opts = opts || {};
+  _.extend(this, opts);
+  this.extra = this.extra || {};
 
   return this;
 };
 EpisodeInfo.prototype = {
+  toString:function() {
+    return this.seriesname + 
+      ", Season: " + 
+      this.seasonnumber + 
+      ", Episode: " +
+      this.episodenumbers.join(", ");
+  },
+  populateFromTvDb:function(tvdb, forceName, seriesId) {
+    // Queries the node-tvdb instance for episode name and corrected series
+    // name.
+    //
+    // If series cannot be found, it will warn the user. If the episode is not
+    // found, it will use the corrected show name and not set an episode name.
+    // If the site is unreachable, it will warn the user. If the user aborts it
+    // will catch node-tvdb user abort error and raise an exception
+    tvdb.findTvShow(this.seriesname, function(err, tvshows) {
+    
+    });
+  },
+  getepdata:function() {
+    // Uses the following config options:
+    // filename_with_episode # Filename when episode name is found
+    // filename_without_episode # Filename when no episode can be found
+    // episode_single # formatting for a single episode number
+    // episode_separator # used to join multiple episode numbers
 
+    // Format episode number into string, or a list
+    var epno = formatEpisodeNumbers(this.episodenumbers);
+
+    // Data made available to config'd output file format
+    var epdata = {
+      'seriesname': this.seriesname,
+      'seasonnumber': this.seasonnumber,
+      'episode': epno,
+      'episodename': this.episodename,
+    };
+
+    return epdata;
+  }
 };
+
 var NoSeasonEpisodeInfo = function(opts) {
+  opts = opts || {};
+  _.extend(this, opts);
+  this.extra = this.extra || {};
+
   return this;
 };
 NoSeasonEpisodeInfo.prototype = {
+  toString:function() {
+    return this.seriesname + 
+      ", Episode: " +
+      this.episodenumbers.join(", ");
+  },
+  populateFromTvDb:function(tvdb, forceName, seriesId) {
+    // Queries the node-tvdb instance for episode name and corrected series
+    // name.
+    //
+    // If series cannot be found, it will warn the user. If the episode is not
+    // found, it will use the corrected show name and not set an episode name.
+    // If the site is unreachable, it will warn the user. If the user aborts it
+    // will catch node-tvdb user abort error and raise an exception
+    tvdb.findTvShow(this.seriesname, function(err, tvshows) {
+    
+    });
+  },
+  getepdata:function() {
+    var epno = formatEpisodeNumbers(this.episodenumbers);
+
+    var epdata = {
+      'seriesname': this.seriesname,
+      'episode': epno,
+      'episodename': self.episodename,
+    };
+
+    return epdata;
+  }
+};
+
+var DatedEpisodeInfo = function(opts) {
+  opts = opts || {};
+  _.extend(this, opts);
+  this.extra = this.extra || {};
+
+  return this;
+};
+DatedEpisodeInfo.prototype = {
+  toString:function() {
+    return this.seriesname + 
+      ", Episode: " +
+      this.episodenumbers.join(", ");
+  },
+  populateFromTvDb:function(tvdb, forceName, seriesId) {
+    // Queries the node-tvdb instance for episode name and corrected series
+    // name.
+    //
+    // If series cannot be found, it will warn the user. If the episode is not
+    // found, it will use the corrected show name and not set an episode name.
+    // If the site is unreachable, it will warn the user. If the user aborts it
+    // will catch node-tvdb user abort error and raise an exception
+    tvdb.findTvShow(this.seriesname, function(err, tvshows) {
+    
+    });
+  },
+  getepdata:function() {
+    // Format episode number into string, or a list
+    var dates = "" + this.episodenumbers[0],
+      prep_episodename;
+
+    if ( _.isArray(this.episodename) ) {
+      prep_episodename = formatEpisodeName(this.episodename, ", ");
+    }
+    else{
+      prep_episodename = this.episodename;
+    }
+
+    var epdata = {
+      'seriesname': this.seriesname,
+      'episode': dates,
+      'episodename': prep_episodename,
+    };
+
+    return epdata;
+  }
+
+};
+
+var AnimeEpisodeInfo = function(opts) {
+  opts = opts || {};
+  _.extend(this, opts);
+  this.extra = this.extra || {};
+
+  return this;
+};
+AnimeEpisodeInfo.prototype = {
+
 };

@@ -15,18 +15,53 @@ var utils = require('./utils.js').utils;
       //language: "en"
     //});
 
+var show_id_re = new RegExp("\\/ep\\/([0-9]+)\\/.*");
+var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+?) MB\\)$");
 var scrapeEZTV = function(_callback) {
   var methods = {
     input:false,
     run:function() {
       var self = this;
       this.getHtml('http://eztv.it/sort/50/', function(err, $) {
-        var episodes = [], href, matches;
+        var episodes = [], href, matches, show_id, 
+            id_matches, downloads, anchor, td, torrent, 
+            i, l, size_matches, size, torrents;
         $("tr.forum_header_border").each(function(tr) {
-          var anchor = $('.forum_thread_post .epinfo', tr);
+          anchor = $('.forum_thread_post .epinfo', tr);
+          // show id
+          id_matches = anchor.attribs.href.match(show_id_re);
+          if (id_matches && id_matches.length > 0) {
+            show_id = id_matches[1];
+          }
+          
+          // size 
+          size_matches = anchor.attribs.title.match(size_re);
+          if (size_matches && size_matches.length > 0) {
+            size = size_matches[1];
+          }
+
+          // torrent download links
+          torrents = [];
+          td = $('td', tr);
+          if (td && td.length > 1) {
+            td = td[2];
+            downloads = $('a', td);
+            for(i = 0, l = downloads.length; i < l; i++) {
+              var download = downloads[i];
+              torrent = download.attribs.href || "";
+              if (torrent.indexOf("magnet") === 0) {
+                continue;
+              }
+              torrents.push(torrent);
+            }
+          }
+
           episodes.push({
-            href:anchor.attribs.href,
-            text:anchor.fulltext
+            href: anchor.attribs.href,
+            text: anchor.fulltext,
+            showid: show_id,
+            size: size,
+            torrents: torrents
           });
         });
         this.emit(episodes);
@@ -35,13 +70,16 @@ var scrapeEZTV = function(_callback) {
     reduce:function(episodes) {
       var emits = [];
       episodes.forEach(function(episode) {
-        utils.parseFile(function(err, episode) {
+        utils.parseFile(function(err, episode_info) {
           if (err) { 
             console.log(err);
             //_callback(err); 
           }
           else {
-            emits.push(episode);
+            episode_info.showid = episode.showid;
+            episode_info.size = episode.size;
+            episode_info.torrents = episode.torrents;
+            emits.push(episode_info);
           }
         }, episode.text);
       });
@@ -85,8 +123,18 @@ readPlistsAndScrapeEZTV(function(err, data) {
 
   _.each(data.episodes, function(episode) {
     console.log(episode.toString());
+    console.log("ShowId: " + episode.showid + ", Size: " + episode.size + " MB");
+    console.log(episode.torrents);
     //console.log(episode.getepdata());
   });
+  
+  //{ showId: '297', title: 'Worst Week', name: 'worst-week' },
+  //{ showId: '518', title: 'X Factor (US), The', name: 'the-x-factor-us' },
+  //{ showId: '298', title: 'X Factor, The', name: 'the-x-factor' },
+  //
+  //{ ExactName: '10+Items+or+Less', HumanName: '10 Items or Less', Subscribed: false, Type: '' }
+  //{ ExactName: '10+O+Clock+Live', HumanName: '10 O Clock Live', Subscribed: false, Type: '' }
+  //{ ExactName: '10+OClock+Live', HumanName: '10 OClock Live', Subscribed: false, Type: '' }
   
   //scrapeEZTV(function(err, episodes) {
     //if (err) { console.log(err); }

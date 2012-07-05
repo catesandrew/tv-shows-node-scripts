@@ -138,7 +138,7 @@ var useShowIds = function(shows, episodes) {
   var show, i, l, episode;
   for (i=0, l=shows.length; i<l; i++) {
     show = shows[i];
-    if (!show.Subscribed) {
+    if (!show.subscribed) {
       continue;
     }
     if (!show.showId) {
@@ -161,12 +161,12 @@ var useShowIds = function(shows, episodes) {
 readPlistsAndScrapeEZTV(function(err, data) {
   if (err) { console.log(err); }
 
-  _.each(data.episodes, function(episode) {
-    console.log(episode.toString());
-    console.log("ShowId: " + episode.showId + ", Size: " + episode.size);
+  //_.each(data.episodes, function(episode) {
+    //console.log(episode.toString());
+    //console.log("ShowId: " + episode.showId + ", Size: " + episode.size);
     //console.log(episode.torrents);
     //console.log(episode.getepdata());
-  });
+  //});
   
   //{ showId: '297', title: 'Worst Week', name: 'worst-week' },
   //{ showId: '518', title: 'X Factor (US), The', name: 'the-x-factor-us' },
@@ -176,12 +176,27 @@ readPlistsAndScrapeEZTV(function(err, data) {
   //{ ExactName: '10+O+Clock+Live', HumanName: '10 O Clock Live', Subscribed: false, Type: '' }
   //{ ExactName: '10+OClock+Live', HumanName: '10 OClock Live', Subscribed: false, Type: '' }
  
-  // we will use showId(s) from eztv if all the subscribed shows
+  // We will use showId(s) from eztv if all the subscribed shows
   // have showId(s) and all the scrubbed episodes from eztv have them.
   var shows = data.plists.showDb.Shows || [];
-  var use_show_ids = useShowIds(shows, 
-    data.episodes
-  );
+
+  // Go through each Show from Shows and 
+  // instantiate it into an Episode derivative
+  var parsed_shows = [];
+  shows.forEach(function(show) {
+    utils.parseShow(function(err, episode) {
+      if (err) { 
+        console.log(err);
+      }
+      else {
+        parsed_shows.push(episode);
+      }
+    }, show);
+  });
+  shows = parsed_shows;
+  //console.log(shows);
+
+  var use_show_ids = useShowIds(shows, data.episodes);
   //console.log("Use show ids: " + use_show_ids);
 
   // use show ids
@@ -235,15 +250,26 @@ readPlistsAndScrapeEZTV(function(err, data) {
     return group[0].showId;
   });
   //var keys = _.keys(loloepisodes);
-  //for (var i=0, l=keys.length; i<l; i++) {
-    //var key = keys[i];
+  //_.each(keys, function(key, index) {
     //console.log("ShowId: " + key);
     //console.log(loloepisodes[key]);
-  //}
+  //});
   
   // 4) Go through all episodes, using showId of
   // the episode and see if its in the subscribed 
   // shows table. 
+  var keys = _.keys(subscribed_shows);
+  _.each(keys, function(key, index) {
+    var loloepisode = loloepisodes[key];
+    if (loloepisode) {
+      // Do the magic here. We found a possible 
+      // show to download that has been subscribed to.
+      console.log('Found show ' + key + ', in lolo episodes');
+
+      
+    }
+  });
+
   
 
   

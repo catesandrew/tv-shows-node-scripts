@@ -332,7 +332,7 @@ Utils.prototype = {
       matches = file.match(obj.regex);
       if (matches) { 
 
-        var episode_numbers, series_name,
+        var episode_numbers, series_name, year, month, day,
           i_name = _.indexOf(matchnames, "seriesname"),
           i_season = _.indexOf(matchnames, "seasonnumber"),
           i_group = _.indexOf(matchnames, "group"),
@@ -342,6 +342,10 @@ Utils.prototype = {
           i_year = _.indexOf(matchnames, "year"),
           i_month = _.indexOf(matchnames, "month"),
           i_day = _.indexOf(matchnames, "day");
+
+        year = null;
+        month = null;
+        day = null;
 
         if (i_start >= 0 ) {
           var start = parseInt(matches[i_start+1], 10);
@@ -365,9 +369,9 @@ Utils.prototype = {
             return callback("Date-based regex must contain groups 'year', 'month' and 'day'");
           }
 
-          var year = utils.handleYear(matches[i_year+1]);
-          var month = parseInt(matches[i_month+1], 10);
-          var day = parseInt(matches[i_day+1], 10);
+          year = utils.handleYear(matches[i_year+1]);
+          month = parseInt(matches[i_month+1], 10);
+          day = parseInt(matches[i_day+1], 10);
           episode_numbers = [new Date(year, month-1, day)];
         }
         else {
@@ -402,24 +406,25 @@ Utils.prototype = {
             seasonnumber: seasonnumber,
             episodenumbers: episode_numbers,
             filename: file
-            //extra: matches
           });
         }
         else if ( (i_year >= 0) && (i_month >= 0) && (i_day >= 0) ) {
           episode = new DatedEpisodeInfo({
             seriesname: series_name,
             episodenumbers: episode_numbers,
+            year: year,
+            month: month,
+            day: day,
             filename: file
-            //extra: matches
           });
         }
         else if ( i_group >= 0) {
+          var group = matches[i_group+1];
           episode = new AnimeEpisodeInfo({
             seriesname: series_name,
             episodenumbers: episode_numbers,
+            group: group,
             filename: file
-            //extra: matches
-          
           });
         }
         else {
@@ -427,13 +432,111 @@ Utils.prototype = {
             seriesname: series_name,
             episodenumbers: episode_numbers,
             filename: file
-            //extra: matches
           });
         }
         return callback(null, episode);
       }
     }
     return callback("Cannot parse " + file, null);
+  },
+  parseShow:function(callback, show) {
+    var episode_numbers, episode, series_name,
+        year, month, day;
+
+    year = null;
+    month = null;
+    day = null;
+
+    if (show.Subscribed) {
+      if (show.Episode) {
+        episode_numbers = [parseInt(show.Episode, 10)];
+      }
+      else if ( show.Year || show.Month || show.Day ) {
+        if (!(show.Year && show.Month && show.Day)) {
+          return callback("Date-based show must contain 'year', 'month' and 'day'");
+        }
+
+        year = utils.handleYear(show.Year);
+        month = parseInt(show.Month, 10);
+        day = parseInt(show.Day, 10);
+        episode_numbers = [new Date(year, month-1, day)];
+      }
+      else {
+        return callback(
+          "Show does not contain episode number group, should "+
+          "contain episodenumber, episodenumber 1-9. Show: " + show.HumanName);
+      }
+
+      if (show.HumanName) {
+        series_name = show.HumanName;
+      } else {
+        return callback("Show must contain seriesname.");
+      }
+
+      if (show.Season) {
+        episode = new EpisodeInfo({
+          exactname: show.ExactName,
+          status: show.Status,
+          subscribed: show.Subscribed,
+          showId: show.showId,
+          seriesname: series_name,
+          seasonnumber: parseInt(show.Season, 10),
+          episodenumbers: episode_numbers
+        });
+      }
+      else if (show.Year && show.Month && show.Day) {
+        episode = new DatedEpisodeInfo({
+          exactname: show.ExactName,
+          status: show.Status,
+          subscribed: show.Subscribed,
+          showId: show.showId,
+          seriesname: series_name,
+          episodenumbers: episode_numbers,
+          year: year,
+          month: month,
+          day: day
+        });
+      }
+      else if (show.Group) {
+        episode = new AnimeEpisodeInfo({
+          exactname: show.ExactName,
+          status: show.Status,
+          subscribed: show.Subscribed,
+          showId: show.showId,
+          seriesname: series_name,
+          episodenumbers: episode_numbers,
+          group: show.Group
+        });
+      }
+      else {
+        episode = new NoSeasonEpisodeInfo({
+          exactname: show.ExactName,
+          status: show.Status,
+          subscribed: show.Subscribed,
+          showId: show.showId,
+          seriesname: series_name,
+          episodenumbers: episode_numbers
+        });
+      }
+      return callback(null, episode);
+    }
+
+    if (show.HumanName) {
+      series_name = show.HumanName;
+    } else {
+      return callback("Show must contain seriesname.");
+    }
+
+    episode = new NoSeasonEpisodeInfo({
+      exactname: show.ExactName,
+      status: show.Status,
+      subscribed: show.Subscribed,
+      showId: show.showId,
+      seriesname: series_name,
+      episodenumbers: []
+    });
+  
+    return callback(null, episode);
   },
   buildExactNameForBackwardsCompatibility:function(name) {
     name = name || "";
@@ -538,7 +641,6 @@ exports.utils = utils;
 var EpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  //this.extra = this.extra || {};
 
   return this;
 };
@@ -555,6 +657,20 @@ EpisodeInfo.prototype = {
       this.seriesname === episodeInfo.seriesname &&
       this.seasonnumber === episodeInfo.seasonnumber &&
       _.isEqual(this.episodenumbers, episodeInfo.episodenumbers);
+  },
+  toPlist:function() {
+    // Format episode number into string, or a list
+    var epno = utils.formatEpisodeNumbers(this.episodenumbers);
+
+    return {
+      ExactName: this.exactname,
+      HumanName: this.seriesname,
+      Status: this.status,
+      Subscribed: this.subscribed,
+      ShowId: this.showId,
+      Episode: epno,
+      Season: this.seasonnumber
+    };
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -593,7 +709,6 @@ EpisodeInfo.prototype = {
 var NoSeasonEpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  //this.extra = this.extra || {};
 
   return this;
 };
@@ -607,6 +722,19 @@ NoSeasonEpisodeInfo.prototype = {
     return this.constructor === noSeasonEpisodeInfo.constructor &&
       this.seriesname === noSeasonEpisodeInfo.seriesname &&
       _.isEqual(this.episodenumbers, noSeasonEpisodeInfo.episodenumbers);
+  },
+  toPlist:function() {
+    // Format episode number into string, or a list
+    var epno = utils.formatEpisodeNumbers(this.episodenumbers);
+
+    return {
+      ExactName: this.exactname,
+      HumanName: this.seriesname,
+      Status: this.status,
+      Subscribed: this.subscribed,
+      ShowId: this.showId,
+      Episode: epno,
+    };
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -636,7 +764,6 @@ NoSeasonEpisodeInfo.prototype = {
 var DatedEpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  //this.extra = this.extra || {};
 
   return this;
 };
@@ -670,6 +797,18 @@ DatedEpisodeInfo.prototype = {
     return this.constructor === datedEpisodeInfo.constructor &&
       this.seriesname === datedEpisodeInfo.seriesname &&
       _.isEqual(this.episodenumbers, datedEpisodeInfo.episodenumbers);
+  },
+  toPlist:function() {
+    return {
+      ExactName: this.exactname,
+      HumanName: this.seriesname,
+      Status: this.status,
+      Subscribed: this.subscribed,
+      ShowId: this.showId,
+      Year: this.year,
+      Month: this.month,
+      Day: this.day
+    };
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -708,7 +847,6 @@ DatedEpisodeInfo.prototype = {
 var AnimeEpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  //this.extra = this.extra || {};
 
   return this;
 };
@@ -717,6 +855,20 @@ AnimeEpisodeInfo.prototype = {
     return this.seriesname + 
       ", Episode: " +
       this.episodenumbers.join(", ");
+  },
+  toPlist:function() {
+    // Format episode number into string, or a list
+    var epno = utils.formatEpisodeNumbers(this.episodenumbers);
+
+    return {
+      ExactName: this.exactname,
+      HumanName: this.seriesname,
+      Status: this.status,
+      Subscribed: this.subscribed,
+      ShowId: this.showId,
+      Episode: epno,
+      Group: this.group
+    };
   },
   equals:function(animeEpisodeInfo) {
     return this.constructor === animeEpisodeInfo.constructor &&

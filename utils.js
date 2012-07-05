@@ -401,24 +401,24 @@ Utils.prototype = {
             seriesname: series_name,
             seasonnumber: seasonnumber,
             episodenumbers: episode_numbers,
-            filename: file,
-            extra: matches
+            filename: file
+            //extra: matches
           });
         }
         else if ( (i_year >= 0) && (i_month >= 0) && (i_day >= 0) ) {
           episode = new DatedEpisodeInfo({
             seriesname: series_name,
             episodenumbers: episode_numbers,
-            filename: file,
-            extra: matches
+            filename: file
+            //extra: matches
           });
         }
         else if ( i_group >= 0) {
           episode = new AnimeEpisodeInfo({
             seriesname: series_name,
             episodenumbers: episode_numbers,
-            filename: file,
-            extra: matches
+            filename: file
+            //extra: matches
           
           });
         }
@@ -426,8 +426,8 @@ Utils.prototype = {
           episode = new NoSeasonEpisodeInfo({
             seriesname: series_name,
             episodenumbers: episode_numbers,
-            filename: file,
-            extra: matches
+            filename: file
+            //extra: matches
           });
         }
         return callback(null, episode);
@@ -538,18 +538,23 @@ exports.utils = utils;
 var EpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  this.extra = this.extra || {};
+  //this.extra = this.extra || {};
 
   return this;
 };
 EpisodeInfo.prototype = {
   toString:function() {
-    return "E: " +
-      this.seriesname + 
+    return this.seriesname + 
       ", Season: " + 
       this.seasonnumber + 
       ", Episode: " +
       this.episodenumbers.join(", ");
+  },
+  equals:function(episodeInfo) {
+    return this.constructor === episodeInfo.constructor &&
+      this.seriesname === episodeInfo.seriesname &&
+      this.seasonnumber === episodeInfo.seasonnumber &&
+      _.isEqual(this.episodenumbers, episodeInfo.episodenumbers);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -588,16 +593,20 @@ EpisodeInfo.prototype = {
 var NoSeasonEpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  this.extra = this.extra || {};
+  //this.extra = this.extra || {};
 
   return this;
 };
 NoSeasonEpisodeInfo.prototype = {
   toString:function() {
-    return "N: " + 
-      this.seriesname + 
+    return this.seriesname + 
       ", Episode: " +
       this.episodenumbers.join(", ");
+  },
+  equals:function(noSeasonEpisodeInfo) {
+    return this.constructor === noSeasonEpisodeInfo.constructor &&
+      this.seriesname === noSeasonEpisodeInfo.seriesname &&
+      _.isEqual(this.episodenumbers, noSeasonEpisodeInfo.episodenumbers);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -627,7 +636,7 @@ NoSeasonEpisodeInfo.prototype = {
 var DatedEpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  this.extra = this.extra || {};
+  //this.extra = this.extra || {};
 
   return this;
 };
@@ -652,11 +661,15 @@ DatedEpisodeInfo.prototype = {
     });
     var episodenumbers = copy.join(', ');
 
-    return "D: " +
-      this.seriesname + 
+    return this.seriesname + 
       ", Episode: " +
       episodenumbers;
 
+  },
+  equals:function(datedEpisodeInfo) {
+    return this.constructor === datedEpisodeInfo.constructor &&
+      this.seriesname === datedEpisodeInfo.seriesname &&
+      _.isEqual(this.episodenumbers, datedEpisodeInfo.episodenumbers);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -690,22 +703,24 @@ DatedEpisodeInfo.prototype = {
 
     return epdata;
   }
-
 };
 
 var AnimeEpisodeInfo = function(opts) {
   opts = opts || {};
   _.extend(this, opts);
-  this.extra = this.extra || {};
+  //this.extra = this.extra || {};
 
   return this;
 };
 AnimeEpisodeInfo.prototype = {
   toString:function() {
-    return "A: " +
-      this.seriesname + 
+    return this.seriesname + 
       ", Episode: " +
       this.episodenumbers.join(", ");
+  },
+  equals:function(animeEpisodeInfo) {
+    return this.constructor === animeEpisodeInfo.constructor &&
+      this.seriesname === animeEpisodeInfo.seriesname &&
+      _.isEqual(this.episodenumbers, animeEpisodeInfo.episodenumbers);
   }
 };
-

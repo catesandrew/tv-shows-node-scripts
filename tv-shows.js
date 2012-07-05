@@ -15,8 +15,8 @@ var utils = require('./utils.js').utils;
       //language: "en"
     //});
 
-var show_id_re = new RegExp("\\/ep\\/([0-9]+)\\/.*");
-var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+?) MB\\)$");
+var show_id_re = new RegExp("\\/shows\\/(?:add\\/)?([0-9]+)\\/.*");
+var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+? [MG]B)\\)$");
 var scrapeEZTV = function(_callback) {
   var methods = {
     input:false,
@@ -27,21 +27,26 @@ var scrapeEZTV = function(_callback) {
             id_matches, downloads, anchor, td, torrent, 
             i, l, size_matches, size, torrents;
         $("tr.forum_header_border").each(function(tr) {
-          anchor = $('.forum_thread_post .epinfo', tr);
+          // reset vars
+          torrents = []; 
+          show_id = null;
+          size = null;
+
           // show id
-          id_matches = anchor.attribs.href.match(show_id_re);
-          if (id_matches && id_matches.length > 0) {
-            show_id = id_matches[1];
+          td = $('td', tr);
+          if (td && td.length > 0) {
+            td = td[0];
+            anchor = $('a', td);
+            if (anchor.length > 0) {
+              anchor = anchor[0];
+            }
+            id_matches = anchor.attribs.href.match(show_id_re);
+            if (id_matches && id_matches.length > 0) {
+              show_id = id_matches[1];
+            }
           }
           
-          // size 
-          size_matches = anchor.attribs.title.match(size_re);
-          if (size_matches && size_matches.length > 0) {
-            size = size_matches[1];
-          }
-
           // torrent download links
-          torrents = [];
           td = $('td', tr);
           if (td && td.length > 1) {
             td = td[2];
@@ -56,13 +61,21 @@ var scrapeEZTV = function(_callback) {
             }
           }
 
+          anchor = $('.forum_thread_post .epinfo', tr);
+          // size 
+          size_matches = anchor.attribs.title.match(size_re);
+          if (size_matches && size_matches.length > 0) {
+            size = size_matches[1];
+          }
+          
           episodes.push({
             href: anchor.attribs.href,
             text: anchor.fulltext,
-            showid: show_id,
+            showId: show_id,
             size: size,
             torrents: torrents
           });
+
         });
         this.emit(episodes);
       });
@@ -76,7 +89,7 @@ var scrapeEZTV = function(_callback) {
             //_callback(err); 
           }
           else {
-            episode_info.showid = episode.showid;
+            episode_info.showId = episode.showId;
             episode_info.size = episode.size;
             episode_info.torrents = episode.torrents;
             emits.push(episode_info);
@@ -118,13 +131,40 @@ var readPlistsAndScrapeEZTV = function(callback) {
     });
 };
 
+var useShowIds = function(shows, episodes) { 
+  shows = shows || [];
+  episodes = episodes || [];
+  var use_show_ids = true;
+  var show, i, l, episode;
+  for (i=0, l=shows.length; i<l; i++) {
+    show = shows[i];
+    if (!show.Subscribed) {
+      continue;
+    }
+    if (!show.showId) {
+      use_show_ids = false;
+      break;
+    }
+  }
+  if (use_show_ids) {
+    for(i=0, l=episodes.length; i<l; i++) {
+      episode = episodes[i];
+      if (!episode.showId) {
+        use_show_ids = false;
+        break;
+      }
+    }
+  }
+  return use_show_ids;
+};
+
 readPlistsAndScrapeEZTV(function(err, data) {
   if (err) { console.log(err); }
 
   _.each(data.episodes, function(episode) {
     console.log(episode.toString());
-    console.log("ShowId: " + episode.showid + ", Size: " + episode.size + " MB");
-    console.log(episode.torrents);
+    console.log("ShowId: " + episode.showId + ", Size: " + episode.size);
+    //console.log(episode.torrents);
     //console.log(episode.getepdata());
   });
   
@@ -135,19 +175,91 @@ readPlistsAndScrapeEZTV(function(err, data) {
   //{ ExactName: '10+Items+or+Less', HumanName: '10 Items or Less', Subscribed: false, Type: '' }
   //{ ExactName: '10+O+Clock+Live', HumanName: '10 O Clock Live', Subscribed: false, Type: '' }
   //{ ExactName: '10+OClock+Live', HumanName: '10 OClock Live', Subscribed: false, Type: '' }
-  
-  //scrapeEZTV(function(err, episodes) {
-    //if (err) { console.log(err); }
+ 
+  // we will use showId(s) from eztv if all the subscribed shows
+  // have showId(s) and all the scrubbed episodes from eztv have them.
+  var shows = data.plists.showDb.Shows || [];
+  var use_show_ids = useShowIds(shows, 
+    data.episodes
+  );
+  //console.log("Use show ids: " + use_show_ids);
 
-    //console.log(episodes.length);
-    //_.each(episodes, function(episode) {
-      //console.log(episode.toString());
-    //});
-    //if (episodes.length) {
-      ////console.log(episodes[0].toString());
-      ////episodes[0].populateFromTvDb(tvdb);
-    //}
-  //}, showId);
+  // use show ids
+  // 1) build table of showId to subscribed shows
+  var subscribed_shows = {};
+  _.each(shows, function(show, index) {
+    var key = show.showId;
+    if (show.Subscribed) {
+      subscribed_shows[key] = show;
+    }
+  });
+  //console.log(subscribed_shows);
+
+  // 2) group all similar eipsodes by 
+  //   seriesname, seasonnumber, episodenumbers OR
+  //   seriesnname, episodenumbers OR
+  //   seriesname, episodenumbers OR
+  var grouped_episodes = _.groupBy(data.episodes, function(episode) {
+    return episode.toString();
+  });
+  
+  // 3) Group all show ids from episodes. Now for any given showId 
+  // we will have a list of list of episodes, or loloepisodes.
+  // This is because we can multiple episodes for a showId, and 
+  // each of those can have multiple qualities.
+  //  
+  // ShowId: 433
+  // [ [ { seriesname: 'Episodes',
+  //       seasonnumber: 2,
+  //       episodenumbers: [7],
+  //       filename: 'Episodes S02E07 CONVERT HDTV x264-TLA',
+  //       showId: '433',
+  //       size: '136.06 MB',
+  //       torrents: [...] },
+  //     { seriesname: 'Episodes',
+  //       seasonnumber: 2,
+  //       episodenumbers: [7],
+  //       filename: 'Episodes S02E07 720p EZTV-UK',
+  //       showId: '433',
+  //       size: '836.06 MB',
+  //       torrents: [...] } ],
+  //   [ { seriesname: 'Episodes',
+  //       seasonnumber: 2,
+  //       episodenumbers: [8],
+  //       filename: 'Episodes S02E08 CONVERT HDTV x264-TLA',
+  //       showId: '433',
+  //       size: '132.33 MB',
+  //       torrents: [...] } ] ]
+  //   
+  var loloepisodes = _.groupBy(grouped_episodes, function(group) {
+    return group[0].showId;
+  });
+  //var keys = _.keys(loloepisodes);
+  //for (var i=0, l=keys.length; i<l; i++) {
+    //var key = keys[i];
+    //console.log("ShowId: " + key);
+    //console.log(loloepisodes[key]);
+  //}
+  
+  // 4) Go through all episodes, using showId of
+  // the episode and see if its in the subscribed 
+  // shows table. 
+  
+
+  
+  // use unique names
+  // build table of unique-name to subscribed shows,
+  // go through all episodes, build unique name
+  // for the episode's seriesname, and then use that
+  // to check to see if its in the subscribed shows
+  // table. 
+  // -- 
+  // group all similar eipsodes by 
+  //   seriesname, seasonnumber, episodenumbers OR
+  //   seriesnname, episodenumbers OR
+  //   seriesname, episodenumbers OR
+  // this is because a parsed episode can have multiple qualties
+  // group all unique-names from episodes
 
 });
 

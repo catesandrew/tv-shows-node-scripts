@@ -235,12 +235,6 @@ var downloadTorrent = function(callback, downloadfile, dir) {
   if (host === "www.bt-chat.com") {
     return callback("bt-chat.com is banned");
   }
-  //if (host === "zoink.it") {
-    //return callback("zoink.it is banned");
-  //}
-  //if (host === "torrage.com") {
-    //return callback("torrage.com is banned");
-  //}
   var filename = url.parse(downloadfile).pathname.split("/").pop();
 
   var theurl = http.createClient(80, host);
@@ -250,23 +244,19 @@ var downloadTorrent = function(callback, downloadfile, dir) {
   var request = theurl.request('GET', requestUrl, {"host": host});
   request.end();
 
-  //var dlprogress = 0;
-
-  //setInterval(function () {
-    //console.log("Download progress: " + dlprogress + " bytes");
-  //}, 1000);
-
+  // We actually want the file to be stored in memory and then
+  // written to disk for .torrent files. otherwise the watched
+  // folder for transmission might go bonkers trying to open
+  // incomplete torrent files.
   request.addListener('response', function (response) {
     response.setEncoding('binary');
     //console.log("File size: " + response.headers['content-length'] + " bytes.");
     var body = '';
     response.addListener('data', function (chunk) {
-      //dlprogress += chunk.length;
       body += chunk;
     });
     response.addListener("end", function() {
       fs.writeFileSync(dir + "/" + filename, body, 'binary');
-      //console.log("After download finished");
       //console.log("Downloaded file: " + filename);
       return callback(null, "Downloaded file: " + filename);
     });
@@ -277,21 +267,6 @@ var downloadTorrent = function(callback, downloadfile, dir) {
       return callback(e);
     });
   });
-  
-  /*
-  request.addListener('response', function (response) {
-    var downloadfile = fs.createWriteStream(dir + "/" + filename, {'flags': 'a'});
-    //console.log("File size " + filename + ": " + response.headers['content-length'] + " bytes.");
-    response.addListener('data', function (chunk) {
-      //dlprogress += chunk.length;
-      downloadfile.write(chunk, encoding='binary');
-    });
-    response.addListener("end", function() {
-      downloadfile.end();
-      return callback(null, "Finished downloading " + filename);
-    });
-  });
-  */
 
 };
 

@@ -2,6 +2,11 @@ var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
   , plist = require('plist')
+  , util = require('util')
+  , http = require('http')
+  , url = require('url')
+  , path = require('path')
+  , events = require('events')
   , exec = require('child_process').exec;
 
 // .+?\s which translates to: "One or more of any character 
@@ -221,6 +226,68 @@ var readPlist = function(callback, path) {
       callback(null, results[1]);
     }
   });
+};
+
+var downloadTorrent = function(callback, downloadfile, dir) {
+  var host = url.parse(downloadfile).hostname;
+
+  if (host === "www.bt-chat.com") {
+    return callback("bt-chat.com is banned");
+  }
+  //if (host === "zoink.it") {
+    //return callback("zoink.it is banned");
+  //}
+  //if (host === "torrage.com") {
+    //return callback("torrage.com is banned");
+  //}
+  var filename = url.parse(downloadfile).pathname.split("/").pop();
+
+  var theurl = http.createClient(80, host);
+  var requestUrl = downloadfile;
+  console.log("Downloading file: " + filename);
+  console.log("Before download request");
+  var request = theurl.request('GET', requestUrl, {"host": host});
+  request.end();
+
+  var dlprogress = 0;
+
+  //setInterval(function () {
+    //console.log("Download progress: " + dlprogress + " bytes");
+  //}, 1000);
+
+  //request.addListener('response', function (response) {
+    //response.setEncoding('binary');
+    //console.log("File size: " + response.headers['content-length'] + " bytes.");
+    //var body = '';
+    //response.addListener('data', function (chunk) {
+      //dlprogress += chunk.length;
+      //body += chunk;
+    //});
+    //response.addListener("end", function() {
+      ////fs.writeFileSync(dir + "/" + filename, body, 'binary');
+      //fs.writeFileSync(filename, body, 'binary');
+      //console.log("After download finished");
+      //console.log("Downloaded file: " + filename);
+      //return callback(null, "Downloaded file: " + filename);
+    //});
+  //});
+
+  request.addListener('response', function (response) {
+    var downloadfile = fs.createWriteStream(filename, {'flags': 'a'});
+    console.log("File size " + filename + ": " + response.headers['content-length'] + " bytes.");
+    response.addListener('data', function (chunk) {
+      dlprogress += chunk.length;
+      downloadfile.write(chunk, encoding='binary');
+    });
+    response.addListener("end", function() {
+      downloadfile.end();
+      console.log("Finished downloading " + filename);
+      return callback(null, "Finished downloading " + filename);
+    });
+
+  });
+
+
 };
 
 var Utils = function(){
@@ -648,6 +715,19 @@ Utils.prototype = {
   }, 
   isNoEpisodeInfo:function(obj) {
     return obj instanceof NoEpisodeInfo;
+  },
+  downloadTorrents:function(callback, torrents, dir) {
+    _.each(torrents, function(torrent) {
+      downloadTorrent(function(err, data) {
+        //if (err) { callback(err); }
+        if (!err) {
+          // do something else
+          // if successful then make sure the file size is not 0 bytes
+          // break out of loop
+          return callback(null, "All good."); 
+        }
+      }, torrent, dir);
+    });
   }
 };
 var utils = new Utils();
@@ -717,10 +797,16 @@ EpisodeInfo.prototype = {
       }
     });
 
+    var lastSeen = "S: " + 
+      ('00' + this.seasonnumber).slice(-2) +
+      ", E: " +
+      utils.formatEpisodeNumbers(this.episodenumbers);
+
     return _.extend({
       HumanName: this.seriesname,
       Episode: epno,
-      Season: this.seasonnumber
+      Season: this.seasonnumber,
+      LastSeen: lastSeen
     }, obj);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
@@ -803,9 +889,13 @@ NoSeasonEpisodeInfo.prototype = {
       }
     });
 
+    var lastSeen = "E: " +
+        utils.formatEpisodeNumbers(this.episodenumbers);
+
     return _.extend({
       HumanName: this.seriesname,
-      Episode: epno
+      Episode: epno,
+      LastSeen: lastSeen
     }, obj);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
@@ -897,11 +987,21 @@ DatedEpisodeInfo.prototype = {
       }
     });
 
+    var copy = _.map(this.episodenumbers, function(date) {
+      return ('00' + (date.getMonth()+1)).slice(-2) +
+        "-" + 
+        ('00' + date.getDate()).slice(-2) +
+        "-" + 
+        date.getFullYear();
+    });
+    var lastSeen = "E: " + copy.join(', ');
+
     return _.extend({
       HumanName: this.seriesname,
       Year: this.year,
       Month: this.month,
-      Day: this.day
+      Day: this.day,
+      LastSeen: lastSeen
     }, obj);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
@@ -961,9 +1061,13 @@ AnimeEpisodeInfo.prototype = {
       obj.Episode = epno;
     }
 
+    var lastSeen = "E: " +
+      utils.formatEpisodeNumbers(this.episodenumbers);
+
     return _.extend({
       HumanName: this.seriesname,
-      Group: this.group
+      Group: this.group,
+      LastSeen: lastSeen
     }, obj);
   },
   equals:function(animeEpisodeInfo) {

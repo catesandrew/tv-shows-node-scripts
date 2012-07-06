@@ -288,6 +288,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
   // 4) Go through all episodes, using showId of
   // the episode and see if its in the subscribed 
   // shows table. 
+  var torrent_dir = data.plists.userPrefs.TorrentFolder;
   var keys = _.keys(subscribed_shows);
   _.each(keys, function(key, index) {
     var loloepisode = loloepisodes[key];
@@ -308,6 +309,11 @@ readPlistsAndScrapeEZTV(function(err, data) {
           incoming_episode.subscribed = known_show.subscribed;
           // todo download
           console.log('downloading ' + incoming_episode.toString());
+          utils.downloadTorrents(function(err, data) {
+          
+          
+          }, incoming_episode.torrents, torrent_dir);
+
           // replace known show with incoming episode
           known_shows[key] = incoming_episode;
         }
@@ -315,8 +321,13 @@ readPlistsAndScrapeEZTV(function(err, data) {
           // should be of the same types now
           if (incoming_episode.compare(known_show) > 0) {
             // the incoming_episode is newer than the latest known show
-            // todo download
+            // download
             console.log('downloading ' + incoming_episode.toString());
+            utils.downloadTorrents(function(err, data) {
+            
+            
+            }, incoming_episode.torrents, torrent_dir);
+
             // update known_show to latest version
             known_show.updateTo(incoming_episode);
           }

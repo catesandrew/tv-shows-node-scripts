@@ -588,10 +588,26 @@ Utils.prototype = {
           } 
           else if (data) {
             if (data.length > 0) {
-              callback(null, data[0]);
-            } else {
-              callback(null, data);
-            }
+              data = data[0];
+            } 
+            
+            // We will use showId(s) from eztv if all the subscribed shows
+            // have showId(s) and all the scrubbed episodes from eztv have them.
+            var shows = data.Shows || [],
+                parsed_shows = [];
+
+            // Go through each Show from Shows and 
+            // instantiate it into an Episode derivative
+            shows.forEach(function(show) {
+              utils.parseShow(function(err, episode) {
+                if (err) { console.log(err); }
+                else {
+                  parsed_shows.push(episode);
+                }
+              }, show);
+            });
+            data.Shows = parsed_shows;
+            callback(null, data);
           }
         }, tv_shows_db);
       }
@@ -668,7 +684,7 @@ EpisodeInfo.prototype = {
     ];
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
-      if (that[optional[1]]) {
+      if ( typeof(that[optional[1]]) !== "undefined" ) {
         obj[optional[0]] = that[optional[1]];
       }
     });
@@ -741,7 +757,7 @@ NoSeasonEpisodeInfo.prototype = {
     ];
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
-      if (that[optional[1]]) {
+      if ( typeof(that[optional[1]]) !== "undefined" ) {
         obj[optional[0]] = that[optional[1]];
       }
     });
@@ -820,7 +836,7 @@ DatedEpisodeInfo.prototype = {
     ];
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
-      if (that[optional[1]]) {
+      if ( typeof(that[optional[1]]) !== "undefined" ) {
         obj[optional[0]] = that[optional[1]];
       }
     });
@@ -878,7 +894,7 @@ AnimeEpisodeInfo.prototype = {
     ];
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
-      if (that[optional[1]]) {
+      if ( typeof(that[optional[1]]) !== "undefined" ) {
         obj[optional[0]] = that[optional[1]];
       }
     });
@@ -923,7 +939,7 @@ NoEpisodeInfo.prototype = {
     ];
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
-      if (that[optional[1]]) {
+      if ( typeof(that[optional[1]]) !== "undefined" ) {
         obj[optional[0]] = that[optional[1]];
       }
     });

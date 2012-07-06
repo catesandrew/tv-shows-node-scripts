@@ -27,14 +27,24 @@ var scrapeEZTV = function(_callback) {
 
     },
     reduce:function(shows) {
-      var emit = [], href, matches;
+      var emit = [], href, matches, obj;
       shows.forEach(function(show) {
         matches = show.href.match(/\/shows\/([0-9]+)\/([0-9a-zA-Z\-]+)/);
-        emit.push({
+        // create a show
+        obj = {
           ShowId: matches[1],
           HumanName: show.text,
-          Status: show.status
-        });
+          Status: show.status,
+          Subscribed: false,
+          ExactName: utils.buildExactNameForBackwardsCompatibility(show.text)
+        };
+        // parse it into an Episode derivative
+        utils.parseShow(function(err, episode) {
+          if (err) { console.log(err); }
+          else {
+            emit.push(episode);
+          }
+        }, obj);
       });
       this.emit(emit);
     },
@@ -56,7 +66,6 @@ var readPlistsAndScrapeEZTV = function(callback) {
         scrapeEZTV(function(err, shows) {
           if (err) { callback(err); }
 
-          //console.log("found " + shows.length + " shows.");
           callback(null, shows);
         });
       },
@@ -104,107 +113,70 @@ readPlistsAndScrapeEZTV(function(err, data) {
     //} 
   //}
 
-  //console.log(data.plists.showDb.Shows[1]);
-  //console.log(data.plists.showDb.Shows[2]);
-
   var incoming_shows = {},
       known_shows = {};
 
-  async.parallel({
-    incoming: function(callback) {
-      var shows = data.shows || [],
-          parsed_shows = [],
-          key;
-
-      // parse  
-      shows.forEach(function(show) {
-        show.Subscribed = false;
-        show.ExactName = utils.buildExactNameForBackwardsCompatibility(show.HumanName);
-
-        utils.parseShow(function(err, episode) {
-          if (err) { console.log(err); }
-          else {
-            parsed_shows.push(episode);
-            key = utils.buildUniqueIdName(episode.seriesname);
-            incoming_shows[key] = episode;
-          }
-        }, show);
-      });
-      callback(null, parsed_shows);
-    },
-    known: function(callback) {
-      var shows = data.plists.showDb.Shows || [],
-          parsed_shows = [],
-          key;
-
-      // parse  
-      shows.forEach(function(show) {
-        utils.parseShow(function(err, episode) {
-          if (err) { console.log(err); }
-          else {
-            parsed_shows.push(episode);
-            key = utils.buildUniqueIdName(episode.seriesname);
-            known_shows[key]= episode;
-          }
-        }, show);
-      });
-      callback(null, parsed_shows);
-    }
-  }, 
-  function(err, results) {
-    if (err) { callback(err); }
-    var shows = results.incoming;
-
-    // walk through incoming_shows and known_shows to see if any of
-    // incoming_show's entries match ones from known_shows. 
-    if (_.size(known_shows) > 0) {
-      var shows_to_add = [];
-      var keys = _.keys(incoming_shows);
-      for( var i=0, l=keys.length; i<l; i++) {
-        if (!known_shows[keys[i]]) {
-          shows_to_add.push(incoming_shows[keys[i]]);
-        } else {
-          // Could add properties from incoming shows 
-          // like Status to previous known_shows entry
-        }
-      }
-      
-      // drop the keys of known_shows and use it as an array
-      known_shows = _.values(known_shows);
-
-      // merge the shows_to_add to known_shows
-      for( var i=0, l=shows_to_add.length; i<l; i++) {
-        known_shows.push(shows_to_add[i]);
-      } 
-      // set shows to known_shows
-      shows = known_shows;
-    }
-
-
-    shows = _.map(shows, function(show) {
-      return show.toPlist();
-    });
-
-    shows = _.sortBy(shows, function(show) {
-      return show.HumanName;
-    });
-
-    var save_these_shows = {
-      "Shows": shows,
-      "Version": "1"
-    };
-    var home = process.env.HOME;
-    var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
-    utils.writePlist(function(err, obj) {
-      if (err) { console.log(err); }
-      //console.log(obj);
-      
-      }, save_these_shows, tv_shows_db
-    );
-
-
-
+  var shows = data.shows || [];
+  shows.forEach(function(show) {
+    key = utils.buildUniqueIdName(show.seriesname);
+    incoming_shows[key] = show;
   });
+
+  shows = data.plists.showDb.Shows || [];
+  shows.forEach(function(show) {
+    key = utils.buildUniqueIdName(show.seriesname);
+    known_shows[key]= show;
+  });
+
+  shows = data.shows || [];
+
+  // walk through incoming_shows and known_shows to see if any of
+  // incoming_show's entries match ones from known_shows. 
+  if (_.size(known_shows) > 0) {
+    var shows_to_add = [];
+    var keys = _.keys(incoming_shows);
+    for( var i=0, l=keys.length; i<l; i++) {
+      if (!known_shows[keys[i]]) {
+        shows_to_add.push(incoming_shows[keys[i]]);
+      } else {
+        // Could add properties from incoming shows 
+        // like Status to previous known_shows entry
+      }
+    }
+    
+    // drop the keys of known_shows and use it as an array
+    known_shows = _.values(known_shows);
+
+    // merge the shows_to_add to known_shows
+    for( var i=0, l=shows_to_add.length; i<l; i++) {
+      known_shows.push(shows_to_add[i]);
+    } 
+    // set shows to known_shows
+    shows = known_shows;
+  }
+
+  shows = _.map(shows, function(show) {
+    return show.toPlist();
+  });
+
+  shows = _.sortBy(shows, function(show) {
+    return show.HumanName;
+  });
+
+  var save_these_shows = {
+    "Shows": shows,
+    "Version": "1"
+  };
+  var home = process.env.HOME;
+  var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
+  utils.writePlist(function(err, obj) {
+    if (err) { console.log(err); }
+    //console.log(obj);
+    
+    }, save_these_shows, tv_shows_db
+  );
+
+
 
 
 });

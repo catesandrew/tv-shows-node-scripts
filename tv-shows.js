@@ -172,40 +172,8 @@ readPlistsAndScrapeEZTV(function(err, data) {
   // have showId(s) and all the scrubbed episodes from eztv have them.
   var shows = data.plists.showDb.Shows || [];
 
-  // Go through each Show from Shows and 
-  // instantiate it into an Episode derivative
-  var parsed_shows = [];
-  shows.forEach(function(show) {
-    utils.parseShow(function(err, episode) {
-      if (err) { 
-        console.log(err);
-      }
-      else {
-        parsed_shows.push(episode);
-      }
-    }, show);
-  });
-  shows = parsed_shows;
-  //console.log(shows);
-
   var use_show_ids = useShowIds(shows, data.episodes);
   //console.log("Use show ids: " + use_show_ids);
-  var bb = _.map(data.episodes, function(show) {
-    return show.toPlist();
-  });
-
-  bb= _.sortBy(bb, function(show) {
-    return show.HumanName;
-  });
-
-  var save_these_shows = {
-    "Shows": bb,
-    "Version": "1"
-  };
-  utils.writePlist(function(err, obj) {
-    if (err) { console.log(err); }
-    }, save_these_shows, "test.plist"
-  );
 
   // use show ids
   // 1) build table of showId to subscribed shows

@@ -229,6 +229,7 @@ var readPlist = function(callback, path) {
 };
 
 var downloadTorrent = function(callback, downloadfile, dir) {
+  // http://stackoverflow.com/questions/4771614/download-large-file-with-node-js-avoiding-high-memory-consumption
   var host = url.parse(downloadfile).hostname;
 
   if (host === "www.bt-chat.com") {
@@ -244,48 +245,53 @@ var downloadTorrent = function(callback, downloadfile, dir) {
 
   var theurl = http.createClient(80, host);
   var requestUrl = downloadfile;
-  console.log("Downloading file: " + filename);
-  console.log("Before download request");
+  //console.log("Downloading file: " + filename);
+  //console.log("Before download request");
   var request = theurl.request('GET', requestUrl, {"host": host});
   request.end();
 
-  var dlprogress = 0;
+  //var dlprogress = 0;
 
   //setInterval(function () {
     //console.log("Download progress: " + dlprogress + " bytes");
   //}, 1000);
 
-  //request.addListener('response', function (response) {
-    //response.setEncoding('binary');
+  request.addListener('response', function (response) {
+    response.setEncoding('binary');
     //console.log("File size: " + response.headers['content-length'] + " bytes.");
-    //var body = '';
-    //response.addListener('data', function (chunk) {
+    var body = '';
+    response.addListener('data', function (chunk) {
       //dlprogress += chunk.length;
-      //body += chunk;
-    //});
-    //response.addListener("end", function() {
-      ////fs.writeFileSync(dir + "/" + filename, body, 'binary');
-      //fs.writeFileSync(filename, body, 'binary');
+      body += chunk;
+    });
+    response.addListener("end", function() {
+      fs.writeFileSync(dir + "/" + filename, body, 'binary');
       //console.log("After download finished");
       //console.log("Downloaded file: " + filename);
-      //return callback(null, "Downloaded file: " + filename);
-    //});
-  //});
-
+      return callback(null, "Downloaded file: " + filename);
+    });
+    response.addListener('error', function (e) {
+      return callback(e);
+    });
+    response.addListener('close', function (e) {
+      return callback(e);
+    });
+  });
+  
+  /*
   request.addListener('response', function (response) {
     var downloadfile = fs.createWriteStream(dir + "/" + filename, {'flags': 'a'});
-    console.log("File size " + filename + ": " + response.headers['content-length'] + " bytes.");
+    //console.log("File size " + filename + ": " + response.headers['content-length'] + " bytes.");
     response.addListener('data', function (chunk) {
-      dlprogress += chunk.length;
+      //dlprogress += chunk.length;
       downloadfile.write(chunk, encoding='binary');
     });
     response.addListener("end", function() {
       downloadfile.end();
       return callback(null, "Finished downloading " + filename);
     });
-
   });
-
+  */
 
 };
 
@@ -715,7 +721,8 @@ Utils.prototype = {
   isNoEpisodeInfo:function(obj) {
     return obj instanceof NoEpisodeInfo;
   },
-  downloadTorrents:function(callback, torrents, dir) {
+  expandHomeDir:function(dir){
+    dir = dir || "";
     if (dir.indexOf("~") === 0) {
       var home = process.env.HOME;
       var splits = dir.split("~");
@@ -726,19 +733,39 @@ Utils.prototype = {
         dir = home;
       }
     }
+    return dir;
+  },
+  downloadTorrents:function(callback, torrents, dir) {
+    dir = utils.expandHomeDir(dir);
 
-    _.each(torrents, function(torrent) {
+    async.forEachSeries(torrents, function(torrent, cb) {
       downloadTorrent(function(err, data) {
-        //if (err) { callback(err); }
-        if (!err) {
-          // do something else
+        // try the next torrent file
+        if (err) { 
+          cb(); 
+        } else {
           // if successful then make sure the file size is not 0 bytes
           // break out of loop
-          console.log(data);
-          return callback(null, "All good."); 
+          cb({
+            error: false,
+            msg:data
+          }); 
         }
       }, torrent, dir);
+    }, 
+    function(data) {
+      // called after all the torrents have finished, or an error has occurred
+      if (data) {
+        if (data.error) {
+          callback(msg);
+        } else {
+          callback(null, data.msg);
+        }
+      } else {
+        callback(null);
+      }
     });
+    
   }
 };
 var utils = new Utils();

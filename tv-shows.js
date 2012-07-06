@@ -103,7 +103,7 @@ var scrapeEZTV = function(_callback) {
     }
   };
 
-  var job = new nodeio.Job({timeout:10, retries:3}, methods);
+  var job = new nodeio.Job({auto_retry:true, timeout:10, retries:3}, methods);
   nodeio.start(job, {}, function(err, data) {
     if (err) { callback(err); }
     _callback(null, data);
@@ -307,13 +307,19 @@ readPlistsAndScrapeEZTV(function(err, data) {
           incoming_episode.status = known_show.status;
           incoming_episode.exactname = known_show.exactname;
           incoming_episode.subscribed = known_show.subscribed;
-          // todo download
-          console.log('downloading ' + incoming_episode.toString());
+          
+          // download
+          //console.log('downloading ' + incoming_episode.toString());
           utils.downloadTorrents(function(err, data) {
-          
-          
+            if (err) {
+              // should we update the show info?
+              console.log("Error: " + data);
+            } else {
+              console.log("Success: " + data);
+            }
           }, incoming_episode.torrents, torrent_dir);
 
+          // TODO : Wait for error/success frown downloading
           // replace known show with incoming episode
           known_shows[key] = incoming_episode;
         }
@@ -321,13 +327,19 @@ readPlistsAndScrapeEZTV(function(err, data) {
           // should be of the same types now
           if (incoming_episode.compare(known_show) > 0) {
             // the incoming_episode is newer than the latest known show
+            
             // download
-            console.log('downloading ' + incoming_episode.toString());
+            //console.log('downloading ' + incoming_episode.toString());
             utils.downloadTorrents(function(err, data) {
-            
-            
+              if (err) {
+                // should we update the show info?
+                console.log("Error: " + data);
+              } else {
+                console.log("Success: " + data);
+              }
             }, incoming_episode.torrents, torrent_dir);
 
+            // TODO : Wait for error/success frown downloading
             // update known_show to latest version
             known_show.updateTo(incoming_episode);
           }
@@ -346,8 +358,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
     return show.HumanName; 
   });
 
-  var home = process.env.HOME;
-  var plist_file = home + "/Library/Application Support/TVShows/TVShows.plist";
+  var plist_file = utils.expandHomeDir("~/Library/Application Support/TVShows/TVShows.plist");
   utils.writePlist(function(err, obj) {
     if (err) { console.log(err); }
     }, { "Shows": shows, "Version": "1" }, plist_file

@@ -53,7 +53,7 @@ var scrapeEZTV = function(_callback) {
     }
   };
 
-  var job = new nodeio.Job({timeout:10, retries:3}, methods);
+  var job = new nodeio.Job({auto_retry:true, timeout:10, retries:3}, methods);
   nodeio.start(job, {}, function(err, data) {
     if (err) { callback(err); }
     _callback(null, data);

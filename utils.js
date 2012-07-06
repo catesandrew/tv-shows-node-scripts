@@ -660,16 +660,24 @@ EpisodeInfo.prototype = {
   toPlist:function() {
     // Format episode number into string, or a list
     var epno = utils.formatEpisodeNumbers(this.episodenumbers);
+    var optionals = [
+      ["ExactName", "exactname"],
+      ["Status", "status"],
+      ["Subscribed", "subscribed"],
+      ["ShowId", "showId"]
+    ];
+    var obj = {}, that = this;
+    _.each(optionals, function(optional, index) {
+      if (that[optional[1]]) {
+        obj[optional[0]] = that[optional[1]];
+      }
+    });
 
-    return {
-      ExactName: this.exactname,
+    return _.extend({
       HumanName: this.seriesname,
-      Status: this.status,
-      Subscribed: this.subscribed,
-      ShowId: this.showId,
       Episode: epno,
       Season: this.seasonnumber
-    };
+    }, obj);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -725,15 +733,23 @@ NoSeasonEpisodeInfo.prototype = {
   toPlist:function() {
     // Format episode number into string, or a list
     var epno = utils.formatEpisodeNumbers(this.episodenumbers);
+    var optionals = [
+      ["ExactName", "exactname"],
+      ["Status", "status"],
+      ["Subscribed", "subscribed"],
+      ["ShowId", "showId"]
+    ];
+    var obj = {}, that = this;
+    _.each(optionals, function(optional, index) {
+      if (that[optional[1]]) {
+        obj[optional[0]] = that[optional[1]];
+      }
+    });
 
-    return {
-      ExactName: this.exactname,
+    return _.extend({
       HumanName: this.seriesname,
-      Status: this.status,
-      Subscribed: this.subscribed,
-      ShowId: this.showId,
-      Episode: epno,
-    };
+      Episode: epno
+    }, obj);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -796,16 +812,25 @@ DatedEpisodeInfo.prototype = {
       _.isEqual(this.episodenumbers, datedEpisodeInfo.episodenumbers);
   },
   toPlist:function() {
-    return {
-      ExactName: this.exactname,
+    var optionals = [
+      ["ExactName", "exactname"],
+      ["Status", "status"],
+      ["Subscribed", "subscribed"],
+      ["ShowId", "showId"]
+    ];
+    var obj = {}, that = this;
+    _.each(optionals, function(optional, index) {
+      if (that[optional[1]]) {
+        obj[optional[0]] = that[optional[1]];
+      }
+    });
+
+    return _.extend({
       HumanName: this.seriesname,
-      Status: this.status,
-      Subscribed: this.subscribed,
-      ShowId: this.showId,
       Year: this.year,
       Month: this.month,
       Day: this.day
-    };
+    }, obj);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -845,18 +870,29 @@ AnimeEpisodeInfo.prototype = {
       this.episodenumbers.join(", ");
   },
   toPlist:function() {
+    var optionals = [
+      ["ExactName", "exactname"],
+      ["Status", "status"],
+      ["Subscribed", "subscribed"],
+      ["ShowId", "showId"]
+    ];
+    var obj = {}, that = this;
+    _.each(optionals, function(optional, index) {
+      if (that[optional[1]]) {
+        obj[optional[0]] = that[optional[1]];
+      }
+    });
+    
     // Format episode number into string, or a list
     var epno = utils.formatEpisodeNumbers(this.episodenumbers);
+    if (epno) {
+      obj.Episode = epno;
+    }
 
-    return {
-      ExactName: this.exactname,
+    return _.extend({
       HumanName: this.seriesname,
-      Status: this.status,
-      Subscribed: this.subscribed,
-      ShowId: this.showId,
-      Episode: epno,
       Group: this.group
-    };
+    }, obj);
   },
   equals:function(animeEpisodeInfo) {
     return this.constructor === animeEpisodeInfo.constructor &&
@@ -879,13 +915,22 @@ NoEpisodeInfo.prototype = {
       this.seriesname === noEpisodeInfo.seriesname;
   },
   toPlist:function() {
-    return {
-      ExactName: this.exactname,
-      HumanName: this.seriesname,
-      Status: this.status,
-      Subscribed: this.subscribed,
-      ShowId: this.showId
-    };
+    var optionals = [
+      ["ExactName", "exactname"],
+      ["Status", "status"],
+      ["Subscribed", "subscribed"],
+      ["ShowId", "showId"]
+    ];
+    var obj = {}, that = this;
+    _.each(optionals, function(optional, index) {
+      if (that[optional[1]]) {
+        obj[optional[0]] = that[optional[1]];
+      }
+    });
+
+    return _.extend({
+      HumanName: this.seriesname
+    }, obj);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series

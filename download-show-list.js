@@ -31,10 +31,9 @@ var scrapeEZTV = function(_callback) {
       shows.forEach(function(show) {
         matches = show.href.match(/\/shows\/([0-9]+)\/([0-9a-zA-Z\-]+)/);
         emit.push({
-          showId: matches[1],
-          title: show.text,
-          Status: show.status,
-          name:matches[2]
+          ShowId: matches[1],
+          HumanName: show.text,
+          Status: show.status
         });
       });
       this.emit(emit);
@@ -107,25 +106,14 @@ readPlistsAndScrapeEZTV(function(err, data) {
 
   //console.log(data.plists.showDb.Shows[1]);
   //console.log(data.plists.showDb.Shows[2]);
-  // 
-  //{ showId: '297', title: 'Worst Week', name: 'worst-week' },
-  //{ showId: '518', title: 'X Factor (US), The', name: 'the-x-factor-us' },
-  //{ showId: '298', title: 'X Factor, The', name: 'the-x-factor' },
-  //
-  //{ ExactName: '10+Items+or+Less', HumanName: '10 Items or Less', Subscribed: false, Type: '' }
-  //{ ExactName: '10+O+Clock+Live', HumanName: '10 O Clock Live', Subscribed: false, Type: '' }
-  //{ ExactName: '10+OClock+Live', HumanName: '10 OClock Live', Subscribed: false, Type: '' }
 
   var incoming_shows = {}, i, l;
   var shows = data.shows || []; 
   var unique_name_fit_for_key;
   for( i=0, l= shows.length; i<l; i++) {
     var show = shows[i];
-    var human_name = show.title;
+    var human_name = show.HumanName;
     show.Subscribed = false;
-    show.HumanName = human_name;
-    delete show.title;
-    delete show.name;
     show.ExactName = utils.buildExactNameForBackwardsCompatibility(human_name);
     unique_name_fit_for_key = utils.buildUniqueIdName(human_name);
     incoming_shows[unique_name_fit_for_key] = show;

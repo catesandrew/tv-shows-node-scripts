@@ -447,95 +447,79 @@ Utils.prototype = {
     month = null;
     day = null;
 
-    if (show.Subscribed) {
-      if (show.Episode) {
-        episode_numbers = [parseInt(show.Episode, 10)];
-      }
-      else if ( show.Year || show.Month || show.Day ) {
-        if (!(show.Year && show.Month && show.Day)) {
-          return callback("Date-based show must contain 'year', 'month' and 'day'");
-        }
+    if (!show.HumanName) {
+      return callback("Show must contain seriesname.");
+    } 
 
-        year = utils.handleYear(show.Year);
-        month = parseInt(show.Month, 10);
-        day = parseInt(show.Day, 10);
-        episode_numbers = [new Date(year, month-1, day)];
-      }
-      else {
-        return callback(
-          "Show does not contain episode number group, should "+
-          "contain episodenumber, episodenumber 1-9. Show: " + show.HumanName);
+    if (show.Episode) {
+      episode_numbers = [parseInt(show.Episode, 10)];
+    }
+    else if ( show.Year || show.Month || show.Day ) {
+      if (!(show.Year && show.Month && show.Day)) {
+        return callback("Date-based show must contain 'year', 'month' and 'day'");
       }
 
-      if (show.HumanName) {
-        series_name = show.HumanName;
-      } else {
-        return callback("Show must contain seriesname.");
-      }
-
-      if (show.Season) {
-        episode = new EpisodeInfo({
-          exactname: show.ExactName,
-          status: show.Status,
-          subscribed: show.Subscribed,
-          showId: show.showId,
-          seriesname: series_name,
-          seasonnumber: parseInt(show.Season, 10),
-          episodenumbers: episode_numbers
-        });
-      }
-      else if (show.Year && show.Month && show.Day) {
-        episode = new DatedEpisodeInfo({
-          exactname: show.ExactName,
-          status: show.Status,
-          subscribed: show.Subscribed,
-          showId: show.showId,
-          seriesname: series_name,
-          episodenumbers: episode_numbers,
-          year: year,
-          month: month,
-          day: day
-        });
-      }
-      else if (show.Group) {
-        episode = new AnimeEpisodeInfo({
-          exactname: show.ExactName,
-          status: show.Status,
-          subscribed: show.Subscribed,
-          showId: show.showId,
-          seriesname: series_name,
-          episodenumbers: episode_numbers,
-          group: show.Group
-        });
-      }
-      else {
-        episode = new NoSeasonEpisodeInfo({
-          exactname: show.ExactName,
-          status: show.Status,
-          subscribed: show.Subscribed,
-          showId: show.showId,
-          seriesname: series_name,
-          episodenumbers: episode_numbers
-        });
-      }
+      year = utils.handleYear(show.Year);
+      month = parseInt(show.Month, 10);
+      day = parseInt(show.Day, 10);
+      episode_numbers = [new Date(year, month-1, day)];
+    }
+    else {
+      episode = new NoEpisodeInfo({
+        exactname: show.ExactName,
+        status: show.Status,
+        subscribed: show.Subscribed,
+        showId: show.ShowId,
+        seriesname: show.HumanName
+      });
       return callback(null, episode);
     }
 
-    if (show.HumanName) {
-      series_name = show.HumanName;
-    } else {
-      return callback("Show must contain seriesname.");
+    if (show.Season) {
+      episode = new EpisodeInfo({
+        exactname: show.ExactName,
+        status: show.Status,
+        subscribed: show.Subscribed,
+        showId: show.ShowId,
+        seriesname: show.HumanName,
+        seasonnumber: parseInt(show.Season, 10),
+        episodenumbers: episode_numbers
+      });
     }
-
-    episode = new NoSeasonEpisodeInfo({
-      exactname: show.ExactName,
-      status: show.Status,
-      subscribed: show.Subscribed,
-      showId: show.showId,
-      seriesname: series_name,
-      episodenumbers: []
-    });
-  
+    else if (show.Year && show.Month && show.Day) {
+      episode = new DatedEpisodeInfo({
+        exactname: show.ExactName,
+        status: show.Status,
+        subscribed: show.Subscribed,
+        showId: show.ShowId,
+        seriesname: show.HumanName,
+        episodenumbers: episode_numbers,
+        year: year,
+        month: month,
+        day: day
+      });
+    }
+    else if (show.Group) {
+      episode = new AnimeEpisodeInfo({
+        exactname: show.ExactName,
+        status: show.Status,
+        subscribed: show.Subscribed,
+        showId: show.ShowId,
+        seriesname: show.HumanName,
+        episodenumbers: episode_numbers,
+        group: show.Group
+      });
+    }
+    else {
+      episode = new NoSeasonEpisodeInfo({
+        exactname: show.ExactName,
+        status: show.Status,
+        subscribed: show.Subscribed,
+        showId: show.ShowId,
+        seriesname: show.HumanName,
+        episodenumbers: episode_numbers
+      });
+    }
     return callback(null, episode);
   },
   buildExactNameForBackwardsCompatibility:function(name) {
@@ -753,8 +737,7 @@ NoSeasonEpisodeInfo.prototype = {
 
     var epdata = {
       'seriesname': this.seriesname,
-      'episode': epno,
-      'episodename': self.episodename,
+      'episode': epno
     };
 
     return epdata;
@@ -791,7 +774,6 @@ DatedEpisodeInfo.prototype = {
     return this.seriesname + 
       ", Episode: " +
       episodenumbers;
-
   },
   equals:function(datedEpisodeInfo) {
     return this.constructor === datedEpisodeInfo.constructor &&
@@ -824,20 +806,11 @@ DatedEpisodeInfo.prototype = {
   },
   getepdata:function() {
     // Format episode number into string, or a list
-    var dates = "" + this.episodenumbers[0],
-      prep_episodename;
-
-    if ( _.isArray(this.episodename) ) {
-      prep_episodename = utils.formatEpisodeName(this.episodename, ", ");
-    }
-    else{
-      prep_episodename = this.episodename;
-    }
+    var dates = "" + this.episodenumbers[0];
 
     var epdata = {
       'seriesname': this.seriesname,
-      'episode': dates,
-      'episodename': prep_episodename,
+      'episode': dates
     };
 
     return epdata;
@@ -874,5 +847,52 @@ AnimeEpisodeInfo.prototype = {
     return this.constructor === animeEpisodeInfo.constructor &&
       this.seriesname === animeEpisodeInfo.seriesname &&
       _.isEqual(this.episodenumbers, animeEpisodeInfo.episodenumbers);
+  }
+};
+
+var NoEpisodeInfo = function(opts) {
+  opts = opts || {};
+  _.extend(this, opts);
+
+  return this;
+};
+NoEpisodeInfo.prototype = {
+  toString:function() {
+    return this.seriesname;
+  },
+  equals:function(noEpisodeInfo) {
+    return this.constructor === noEpisodeInfo.constructor &&
+      this.seriesname === noEpisodeInfo.seriesname;
+  },
+  toPlist:function() {
+    return {
+      ExactName: this.exactname,
+      HumanName: this.seriesname,
+      Status: this.status,
+      Subscribed: this.subscribed,
+      ShowId: this.showId
+    };
+  },
+  populateFromTvDb:function(tvdb, forceName, seriesId) {
+    // Queries the node-tvdb instance for episode name and corrected series
+    // name.
+    //
+    // If series cannot be found, it will warn the user. If the episode is not
+    // found, it will use the corrected show name and not set an episode name.
+    // If the site is unreachable, it will warn the user. If the user aborts it
+    // will catch node-tvdb user abort error and raise an exception
+    tvdb.findTvShow(this.seriesname, function(err, tvshows) {
+    
+    });
+  },
+  getepdata:function() {
+    var epno = utils.formatEpisodeNumbers(this.episodenumbers);
+
+    var epdata = {
+      'seriesname': this.seriesname,
+      'episode': epno
+    };
+
+    return epdata;
   }
 };

@@ -168,14 +168,6 @@ readPlistsAndScrapeEZTV(function(err, data) {
     //console.log(episode.getepdata());
   //});
   
-  //{ showId: '297', title: 'Worst Week', name: 'worst-week' },
-  //{ showId: '518', title: 'X Factor (US), The', name: 'the-x-factor-us' },
-  //{ showId: '298', title: 'X Factor, The', name: 'the-x-factor' },
-  //
-  //{ ExactName: '10+Items+or+Less', HumanName: '10 Items or Less', Subscribed: false, Type: '' }
-  //{ ExactName: '10+O+Clock+Live', HumanName: '10 O Clock Live', Subscribed: false, Type: '' }
-  //{ ExactName: '10+OClock+Live', HumanName: '10 OClock Live', Subscribed: false, Type: '' }
- 
   // We will use showId(s) from eztv if all the subscribed shows
   // have showId(s) and all the scrubbed episodes from eztv have them.
   var shows = data.plists.showDb.Shows || [];

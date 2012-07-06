@@ -161,27 +161,48 @@ var useShowIds = function(shows, episodes) {
 readPlistsAndScrapeEZTV(function(err, data) {
   if (err) { console.log(err); }
 
+  //console.log('---- Incoming Shows ----');
   //_.each(data.episodes, function(episode) {
-    //console.log(episode.toString());
     //console.log("ShowId: " + episode.showId + ", Size: " + episode.size);
+    //console.log(episode.toString());
+    //console.log(episode.torrents);
+    //console.log(episode.getepdata());
+  //});
+  //console.log('---- Known Shows ----');
+  //_.each(data.plists.showDb.Shows, function(episode) {
+    //console.log("ShowId: " + episode.showId);
+    //console.log(episode.toString());
     //console.log(episode.torrents);
     //console.log(episode.getepdata());
   //});
   
+  var known_episodes = data.plists.showDb.Shows || [];
+
   // We will use showId(s) from eztv if all the subscribed shows
   // have showId(s) and all the scrubbed episodes from eztv have them.
-  var shows = data.plists.showDb.Shows || [];
-
-  var use_show_ids = useShowIds(shows, data.episodes);
+  var use_show_ids = useShowIds(known_episodes, data.episodes);
   //console.log("Use show ids: " + use_show_ids);
+                                          
+  // save the latest incoming episodes from eztv
+  //var bb = _.map(data.episodes, function(show) { return show.toPlist(); });
+  //bb = _.sortBy(bb, function(show) { return show.HumanName; });
+  //var save_these_shows = { "Shows": bb, "Version": "1" };
+  //var home = process.env.HOME;
+  //var latest_feed = home + "/Library/Application Support/TVShows/latest-feed.plist";
+  //utils.writePlist(function(err, obj) {
+    //if (err) { console.log(err); }
+    //}, save_these_shows,latest_feed
+  //);
 
   // use show ids
   // 1) build table of showId to subscribed shows
-  var subscribed_shows = {};
-  _.each(shows, function(show, index) {
-    var key = show.showId;
-    if (show.Subscribed) {
-      subscribed_shows[key] = show;
+  var subscribed_shows = {}, // only the subscribred known episodes
+      known_shows = {};      // all of the known episodes
+  _.each(known_episodes, function(known_episode, index) {
+    var key = known_episode.showId;
+    known_shows[key] = known_episode;
+    if (known_episode.subscribed) {
+      subscribed_shows[key] = known_episode;
     }
   });
   //console.log(subscribed_shows);
@@ -225,6 +246,39 @@ readPlistsAndScrapeEZTV(function(err, data) {
   var loloepisodes = _.groupBy(grouped_episodes, function(group) {
     return group[0].showId;
   });
+
+  // Sort the episodes in ascending order so it looks like this afterwards
+  //
+  // ShowId: 244
+  // [ [ { seriesname: 'The Sci Fi Guys',
+  //       seasonnumber: 5,
+  //       episodenumbers: [Object],
+  //       filename: 'The Sci Fi Guys S05E13 ClawsCosplay Challenge-SCIFIGUYS',
+  //       showId: '244',
+  //       size: '126.06 MB',
+  //       torrents: [Object] } ],
+  //   [ { seriesname: 'The Sci Fi Guys',
+  //       seasonnumber: 5,
+  //       episodenumbers: [Object],
+  //       filename: 'The Sci Fi Guys S05E14 TheGooch Cookie-SCIFIGUYS',
+  //       showId: '244',
+  //       size: '117.09 MB',
+  //       torrents: [Object] } ],
+  //   [ { seriesname: 'The Sci Fi Guys',
+  //       seasonnumber: 5,
+  //       episodenumbers: [Object],
+  //       filename: 'The Sci Fi Guys S05E15 TheHunger Games-SCIFIGUYS',
+  //       showId: '244',
+  //       size: '89.88 MB',
+  //       torrents: [Object] } ] ]
+  //
+  _.each(loloepisodes, function(value, key ,list) {
+    var result = _.sortBy(value, function(list) {
+      // use  -list[0].toString() to sort descending
+      return list[0].toString();
+    });
+    loloepisodes[key] = result; 
+  });
   //var keys = _.keys(loloepisodes);
   //_.each(keys, function(key, index) {
     //console.log("ShowId: " + key);
@@ -240,13 +294,54 @@ readPlistsAndScrapeEZTV(function(err, data) {
     if (loloepisode) {
       // Do the magic here. We found a possible 
       // show to download that has been subscribed to.
-      console.log('Found show ' + key + ', in lolo episodes');
+      //console.log('Found show ' + key + ', in lolo episodes');
+      _.each(loloepisode, function(loepisode, index) {
+        var known_show = known_shows[key];
+        // for now, just use the first one, who cares about
+        // getting the highest quality available.
+        var incoming_episode = loepisode[0];
 
-      
+        if (utils.isNoEpisodeInfo(known_show)) {
+          // copy over known properties
+          incoming_episode.status = known_show.status;
+          incoming_episode.exactname = known_show.exactname;
+          incoming_episode.subscribed = known_show.subscribed;
+          // todo download
+          console.log('downloading ' + incoming_episode.toString());
+          // replace known show with incoming episode
+          known_shows[key] = incoming_episode;
+        }
+        else {
+          // should be of the same types now
+          if (incoming_episode.compare(known_show) > 0) {
+            // the incoming_episode is newer than the latest known show
+            // todo download
+            console.log('downloading ' + incoming_episode.toString());
+            // update known_show to latest version
+            known_show.updateTo(incoming_episode);
+          }
+        }
+      });
     }
   });
 
-  
+  // 5) save the updated known shows list 
+  //
+  var shows = [];
+  _.each(known_shows, function(value, key, list) {
+     shows.push(value.toPlist());
+  });
+  shows = _.sortBy(shows, function(show) { 
+    return show.HumanName; 
+  });
+
+  var home = process.env.HOME;
+  var plist_file = home + "/Library/Application Support/TVShows/TVShows.plist";
+  utils.writePlist(function(err, obj) {
+    if (err) { console.log(err); }
+    }, { "Shows": shows, "Version": "1" }, plist_file
+  );
+
 
   
   // use unique names

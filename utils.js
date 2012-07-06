@@ -653,6 +653,20 @@ Utils.prototype = {
 var utils = new Utils();
 exports.utils = utils;
 
+function strcmp ( str1, str2 ) {
+  // http://kevin.vanzonneveld.net
+  // +   original by: Waldo Malqui Silva
+  // +      input by: Steve Hilder
+  // +   improved by: Kevin van Zonneveld (http://kevin.vanzonneveld.net)
+  // +    revised by: gorthaur
+  // *     example 1: strcmp( 'waldo', 'owald' );
+  // *     returns 1: 1
+  // *     example 2: strcmp( 'owald', 'waldo' );
+  // *     returns 2: -1
+
+  return ( ( str1 == str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
+}
+
 function EpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
@@ -662,16 +676,30 @@ function EpisodeInfo(opts) {
 EpisodeInfo.prototype = {
   toString:function() {
     return this.seriesname + 
-      ", Season: " + 
-      this.seasonnumber + 
-      ", Episode: " +
-      this.episodenumbers.join(", ");
+      ", S: " + 
+      ('00' + this.seasonnumber).slice(-2) +
+      ", E: " +
+      utils.formatEpisodeNumbers(this.episodenumbers);
   },
   equals:function(episodeInfo) {
-    return this.constructor === episodeInfo.constructor &&
-      this.seriesname === episodeInfo.seriesname &&
+    return this.seriesname === episodeInfo.seriesname &&
       this.seasonnumber === episodeInfo.seasonnumber &&
       _.isEqual(this.episodenumbers, episodeInfo.episodenumbers);
+  },
+  compare:function(episodeInfo) {
+    if (!utils.isEpisodeInfo(episodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    return strcmp(this.toString(), episodeInfo.toString());
+  },
+  updateTo:function(episodeInfo) {
+    if (!utils.isEpisodeInfo(episodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    this.episodenumbers = episodeInfo.episodenumbers;
+    this.seasonnumber = episodeInfo.seasonnumber;
   },
   toPlist:function() {
     // Format episode number into string, or a list
@@ -738,13 +766,26 @@ function NoSeasonEpisodeInfo(opts) {
 NoSeasonEpisodeInfo.prototype = {
   toString:function() {
     return this.seriesname + 
-      ", Episode: " +
-      this.episodenumbers.join(", ");
+      ", E: " +
+      utils.formatEpisodeNumbers(this.episodenumbers);
   },
   equals:function(noSeasonEpisodeInfo) {
-    return this.constructor === noSeasonEpisodeInfo.constructor &&
-      this.seriesname === noSeasonEpisodeInfo.seriesname &&
+    return this.seriesname === noSeasonEpisodeInfo.seriesname &&
       _.isEqual(this.episodenumbers, noSeasonEpisodeInfo.episodenumbers);
+  },
+  compare:function(noSeasonEpisodeInfo) {
+    if (!utils.isSeasonEpisodeInfo(noSeasonEpisodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    return strcmp(this.toString(), noSeasonEpisodeInfo.toString());
+  },
+  updateTo:function(noSeasonEpisodeInfo) {
+    if (!utils.isSeasonEpisodeInfo(noSeasonEpisodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    this.episodenumbers = noSeasonEpisodeInfo.episodenumbers;
   },
   toPlist:function() {
     // Format episode number into string, or a list
@@ -816,16 +857,31 @@ DatedEpisodeInfo.prototype = {
         "-" + 
         date.getFullYear();
     });
-    var episodenumbers = copy.join(', ');
 
     return this.seriesname + 
-      ", Episode: " +
-      episodenumbers;
+      ", E: " +
+      copy.join(', ');
   },
   equals:function(datedEpisodeInfo) {
-    return this.constructor === datedEpisodeInfo.constructor &&
-      this.seriesname === datedEpisodeInfo.seriesname &&
+    return this.seriesname === datedEpisodeInfo.seriesname &&
       _.isEqual(this.episodenumbers, datedEpisodeInfo.episodenumbers);
+  },
+  compare:function(datedEpisodeInfo) {
+    if (!utils.isDatedEpisodeInfo(datedEpisodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    return strcmp(this.toString(), datedEpisodeInfo.toString());
+  },
+  updateTo:function(datedEpisodeInfo) {
+    if (!utils.isDatedEpisodeInfo(datedEpisodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    this.year = datedEpisodeInfo.year;
+    this.month = datedEpisodeInfo.month;
+    this.day = datedEpisodeInfo.day;
+    this.episodenumbers = datedEpisodeInfo.episodenumbers;
   },
   toPlist:function() {
     var optionals = [
@@ -882,8 +938,8 @@ function AnimeEpisodeInfo(opts) {
 AnimeEpisodeInfo.prototype = {
   toString:function() {
     return this.seriesname + 
-      ", Episode: " +
-      this.episodenumbers.join(", ");
+      ", E: " +
+      utils.formatEpisodeNumbers(this.episodenumbers);
   },
   toPlist:function() {
     var optionals = [
@@ -911,9 +967,22 @@ AnimeEpisodeInfo.prototype = {
     }, obj);
   },
   equals:function(animeEpisodeInfo) {
-    return this.constructor === animeEpisodeInfo.constructor &&
-      this.seriesname === animeEpisodeInfo.seriesname &&
+    return this.seriesname === animeEpisodeInfo.seriesname &&
       _.isEqual(this.episodenumbers, animeEpisodeInfo.episodenumbers);
+  },
+  compare:function(animeEpisodeInfo) {
+    if (!utils.isAnimeEpisodeInfo(animeEpisodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    return strcmp(this.toString(), animeEpisodeInfo.toString());
+  },
+  updateTo:function(animeEpisodeInfo) {
+    if (!utils.isAnimeEpisodeInfo(animeEpisodeInfo)) {
+      console.log("Not the same types");
+      return;
+    }
+    this.episodenumbers = animeEpisodeInfo.episodenumbers;
   }
 };
 
@@ -927,8 +996,7 @@ NoEpisodeInfo.prototype = {
     return this.seriesname;
   },
   equals:function(noEpisodeInfo) {
-    return this.constructor === noEpisodeInfo.constructor &&
-      this.seriesname === noEpisodeInfo.seriesname;
+    return this.seriesname === noEpisodeInfo.seriesname;
   },
   toPlist:function() {
     var optionals = [

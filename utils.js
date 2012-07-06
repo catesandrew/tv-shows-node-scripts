@@ -607,7 +607,7 @@ Utils.prototype = {
       '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
       '<plist version="1.0">'
     ];
-        
+
     var data = 
       headers.join('\n') +
       plist.stringify(obj) + 
@@ -617,17 +617,32 @@ Utils.prototype = {
       if (err) { callback(err); }
       callback(null, 'successfully saved file to ' + output);
     });
+  },
+  isEpisodeInfo:function(obj) {
+    return obj instanceof EpisodeInfo;
+  },
+  isNoSeasonEpisodeInfo:function(obj) {
+    return obj instanceof NoSeasonEpisodeInfo;
+  },
+  isDatedEpisodeInfo:function(obj) {
+    return obj instanceof DatedEpisodeInfo;
+  },
+  isAnimeEpisodeInfo:function(obj) {
+    return obj instanceof AnimeEpisodeInfo;
+  }, 
+  isNoEpisodeInfo:function(obj) {
+    return obj instanceof NoEpisodeInfo;
   }
 };
 var utils = new Utils();
 exports.utils = utils;
 
-var EpisodeInfo = function(opts) {
+function EpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
 
   return this;
-};
+}
 EpisodeInfo.prototype = {
   toString:function() {
     return this.seriesname + 
@@ -690,12 +705,12 @@ EpisodeInfo.prototype = {
   }
 };
 
-var NoSeasonEpisodeInfo = function(opts) {
+function NoSeasonEpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
 
   return this;
-};
+}
 NoSeasonEpisodeInfo.prototype = {
   toString:function() {
     return this.seriesname + 
@@ -744,12 +759,12 @@ NoSeasonEpisodeInfo.prototype = {
   }
 };
 
-var DatedEpisodeInfo = function(opts) {
+function DatedEpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
 
   return this;
-};
+}
 DatedEpisodeInfo.prototype = {
   toString:function() {
     //var months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];        
@@ -817,12 +832,12 @@ DatedEpisodeInfo.prototype = {
   }
 };
 
-var AnimeEpisodeInfo = function(opts) {
+function AnimeEpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
 
   return this;
-};
+}
 AnimeEpisodeInfo.prototype = {
   toString:function() {
     return this.seriesname + 
@@ -850,12 +865,11 @@ AnimeEpisodeInfo.prototype = {
   }
 };
 
-var NoEpisodeInfo = function(opts) {
+function NoEpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
-
   return this;
-};
+}
 NoEpisodeInfo.prototype = {
   toString:function() {
     return this.seriesname;

@@ -273,7 +273,7 @@ var downloadTorrent = function(callback, downloadfile, dir) {
   //});
 
   request.addListener('response', function (response) {
-    var downloadfile = fs.createWriteStream(filename, {'flags': 'a'});
+    var downloadfile = fs.createWriteStream(dir + "/" + filename, {'flags': 'a'});
     console.log("File size " + filename + ": " + response.headers['content-length'] + " bytes.");
     response.addListener('data', function (chunk) {
       dlprogress += chunk.length;
@@ -281,7 +281,6 @@ var downloadTorrent = function(callback, downloadfile, dir) {
     });
     response.addListener("end", function() {
       downloadfile.end();
-      console.log("Finished downloading " + filename);
       return callback(null, "Finished downloading " + filename);
     });
 
@@ -717,6 +716,17 @@ Utils.prototype = {
     return obj instanceof NoEpisodeInfo;
   },
   downloadTorrents:function(callback, torrents, dir) {
+    if (dir.indexOf("~") === 0) {
+      var home = process.env.HOME;
+      var splits = dir.split("~");
+
+      if (splits.length > 0){
+        dir = home + splits[1];
+      } else {
+        dir = home;
+      }
+    }
+
     _.each(torrents, function(torrent) {
       downloadTorrent(function(err, data) {
         //if (err) { callback(err); }
@@ -724,6 +734,7 @@ Utils.prototype = {
           // do something else
           // if successful then make sure the file size is not 0 bytes
           // break out of loop
+          console.log(data);
           return callback(null, "All good."); 
         }
       }, torrent, dir);

@@ -8,8 +8,9 @@
   "dependencies": {
     "async": "~0.1",
     "node.io": "latest",
-    "plist": "latest",
-    "tvdb": "latest",
+    "xml2js": "0.x",
+    "sax": "0.1.x",
+    "node-zip": "0.x",
     "underscore": "latest"
   }
 }

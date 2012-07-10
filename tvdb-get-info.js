@@ -17,20 +17,34 @@ if (args && args.length > 0) {
     }
     else {
       //console.log(result.series);
+      var levs = [];
       _.each(result.episodes, function(episode) {
-        console.log(episode.toPlist([
-          [ 'ImdbId', 'ImdbId' ],
-          [ 'SeriesId', 'TvdbSeriesId' ],
-          [ 'EpisodeId', 'TvdbEpisodeId' ],
-          [ 'Overview', 'Overview' ],
-          [ 'EpisodeName', 'EpisodeName' ],
-          [ 'Episode', 'Episode' ],
-          [ 'Director', 'Director' ],
-          [ 'Season', 'Season' ],
-          [ 'Writer', 'Writer' ],
-          [ 'Artwork', 'Artwork' ],
-          [ 'FirstAired', 'FirstAiredOn' ]
-        ]));
+        //console.log(episode.toPlist([
+          //[ 'ImdbId', 'ImdbId' ],
+          //[ 'SeriesId', 'TvdbSeriesId' ],
+          //[ 'EpisodeId', 'TvdbEpisodeId' ],
+          //[ 'Overview', 'Overview' ],
+          //[ 'EpisodeName', 'EpisodeName' ],
+          //[ 'Episode', 'Episode' ],
+          //[ 'Director', 'Director' ],
+          //[ 'Season', 'Season' ],
+          //[ 'Writer', 'Writer' ],
+          //[ 'Artwork', 'Artwork' ],
+          //[ 'FirstAired', 'FirstAiredOn' ]
+        //]));
+        var lev = utils.levenshtein(episode.EpisodeName, "Allosaurus Crush Castle");
+        if (typeof(lev) !== 'undefined') {
+          levs.push({
+            'lev':lev,
+            'episode':episode
+          });
+        }
+      });
+      levs = _.sortBy(levs, function(obj) {
+        return obj.lev;
+      });
+      _.each(levs, function(obj, index) {
+        console.log("Lev: " + obj.lev + ", Name: " + obj.episode.EpisodeName);
       });
     }
   }, showId);

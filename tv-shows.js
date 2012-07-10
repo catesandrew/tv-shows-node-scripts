@@ -7,12 +7,6 @@ var async = require('async')
 var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
 
-//var TVDB = require('tvdb')
-  //, tvdb = new TVDB({
-      //apiKey: "0629B785CE550C8D",
-      //language: "en"
-    //});
-
 var show_id_re = new RegExp("\\/shows\\/(?:add\\/)?([0-9]+)\\/.*");
 var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+? [MG]B)\\)$");
 var scrapeEZTV = function(_callback) {

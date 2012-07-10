@@ -9,6 +9,12 @@ var async = require('async')
   , events = require('events')
   , exec = require('child_process').exec;
 
+var TVDB = require('tvdb')
+  , tvdb = new TVDB({
+      apiKey: "0629B785CE550C8D",
+      language: "en"
+    });
+
 // .+?\s which translates to: "One or more of any character 
 // but as soon as a space is encountered, stop!"
 var filename_patterns = [
@@ -276,8 +282,9 @@ var downloadTorrent = function(callback, downloadfile, dir) {
 
 };
 
-var Utils = function(){
-};
+var cache = {};
+
+var Utils = function(){};
 Utils.prototype = {
   formatEpisodeNumbers:function(episodenumbers){
     // Format episode number(s) into string, using configured values
@@ -752,6 +759,64 @@ Utils.prototype = {
       }
     });
     
+  },
+  findTvShow:function(callback, seriesName) {
+    tvdb.findTvShow(seriesName, function(err, tvshows) {
+      if (err) { callback(err); }
+      callback(null, tvshows);
+    });
+  },
+  getSeriesInfo:function(callback, tvdbSeriesId) {
+    if (cache[tvdbSeriesId]) {
+      return done(null, cache[tvdbSeriesId]);
+    }
+    tvdb.getInfo(tvdbSeriesId, function(err, result) {
+      if (err) { callback(err); }
+
+      var emit = [], obj;
+      var keyMapping = {
+        ImdbId: 'ImdbId',
+        SeriesId: 'TvdbSeriesId',
+        EpisodeId: 'TvdbEpisodeId',
+        Overview: 'Overview',
+        EpisodeName: 'EpisodeName',
+        Episode: 'Episode',
+        Director: 'Director',
+        Season: 'Season',
+        Writer: 'Writer',
+        Artwork: 'Artwork',
+        FirstAired: 'FirstAiredOn'
+      };
+      // parse it into an Episode derivative
+      var episodes = result.episodes || [];
+      _.each(episodes, function(episode) {
+        obj = {
+          HumanName: episode.HumanName
+        };
+        utils.parseShow(function(err, episode_info) {
+          if (err) { console.log(err); }
+          else {
+            _.each(keyMapping, function(trgKey, srcKey) {
+              var srcValue = episode[srcKey];
+              if (srcValue) {
+                if ( Object.prototype.toString.call(srcValue) === "[object Date]" ) {
+                  episode_info[trgKey] = srcValue;
+                } else if (!_.isEmpty(srcValue)) {
+                  episode_info[trgKey] = srcValue;
+                }
+              }
+            });
+            emit.push(episode_info);
+          }
+        }, obj);
+        result.episodes = emit;
+      });
+
+      cache[tvdbSeriesId] = cache[tvdbSeriesId] || {};
+      cache[tvdbSeriesId].series = result.series;
+      cache[tvdbSeriesId].episodes = result.episodes;
+      callback(null, result);
+    });
   }
 };
 var utils = new Utils();

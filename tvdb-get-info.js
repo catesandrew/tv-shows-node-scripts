@@ -3,6 +3,7 @@ var async = require('async')
   , _ = require('underscore')
   , nodeio = require('node.io')
   , plist = require('plist')
+  , program = require('commander')
   , util = require('util');
 
 var utils = require('./utils.js').utils;
@@ -16,35 +17,54 @@ if (args && args.length > 0) {
       console.log(err);
     }
     else {
-      //console.log(result.series);
-      var levs = [];
-      _.each(result.episodes, function(episode) {
-        //console.log(episode.toPlist([
-          //[ 'ImdbId', 'ImdbId' ],
-          //[ 'SeriesId', 'TvdbSeriesId' ],
-          //[ 'EpisodeId', 'TvdbEpisodeId' ],
-          //[ 'Overview', 'Overview' ],
-          //[ 'EpisodeName', 'EpisodeName' ],
-          //[ 'Episode', 'Episode' ],
-          //[ 'Director', 'Director' ],
-          //[ 'Season', 'Season' ],
-          //[ 'Writer', 'Writer' ],
-          //[ 'Artwork', 'Artwork' ],
-          //[ 'FirstAired', 'FirstAiredOn' ]
-        //]));
-        var lev = utils.levenshtein(episode.EpisodeName, "Allosaurus Crush Castle");
-        if (typeof(lev) !== 'undefined') {
-          levs.push({
-            'lev':lev,
-            'episode':episode
+      var incoming = ["daring the backstroke", "shit highway", "cankles", "allosaurus crush castle"];
+      async.forEachSeries(incoming, function(title, next) {
+        var levs = [], str_nears, obj_nears;
+
+        // calculate all the levenshtein
+        _.each(result.episodes, function(episode) {
+          var left = ( episode.EpisodeName || "" ).toLowerCase(),
+              right = ( title || "" ).toLowerCase(),
+              lev = utils.levenshtein(left, right);
+          if (typeof(lev) !== 'undefined') {
+            levs.push({
+              'lev':lev,
+              'episode':episode
+            });
+          }
+        });
+        // sort all the levenshtein
+        levs = _.sortBy(levs, function(obj) {
+          return obj.lev;
+        });
+
+        // make your choice
+        if (levs.length > 0) {
+          // get the closest one
+          var lev_val = levs[0].lev; 
+          str_nears = [];
+          obj_nears = [];
+
+          _.each(levs, function(obj) {
+            if ( Math.abs(obj.lev - lev_val) < 6) {
+              str_nears.push("Lev: " + obj.lev + ", Name: " + obj.episode.EpisodeName);
+              obj_nears.push(obj);
+            }
           });
+
+          console.log('Choose the closest match: [ "' + title + '" ]');
+          program.choose(str_nears, function(i) {
+            console.log('you chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
+            // TODO: rename the incoming title now
+            next();
+          });
+        } else {
+          next();
         }
-      });
-      levs = _.sortBy(levs, function(obj) {
-        return obj.lev;
-      });
-      _.each(levs, function(obj, index) {
-        console.log("Lev: " + obj.lev + ", Name: " + obj.episode.EpisodeName);
+      },
+      function(data) {
+        console.log('all done');
+        process.stdin.destroy();
       });
     }
   }, showId);
@@ -53,3 +73,16 @@ if (args && args.length > 0) {
 
 //thetvdb.com/api/0629B785CE550C8D/series/74845/all/en.zip
 //thetvdb.com/api/0629B785CE550C8D/episodes/295369/en.xml
+//console.log(episode.toPlist([
+  //[ 'ImdbId', 'ImdbId' ],
+  //[ 'SeriesId', 'TvdbSeriesId' ],
+  //[ 'EpisodeId', 'TvdbEpisodeId' ],
+  //[ 'Overview', 'Overview' ],
+  //[ 'EpisodeName', 'EpisodeName' ],
+  //[ 'Episode', 'Episode' ],
+  //[ 'Director', 'Director' ],
+  //[ 'Season', 'Season' ],
+  //[ 'Writer', 'Writer' ],
+  //[ 'Artwork', 'Artwork' ],
+  //[ 'FirstAired', 'FirstAiredOn' ]
+//]));

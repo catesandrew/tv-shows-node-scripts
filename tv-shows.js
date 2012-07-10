@@ -1,9 +1,5 @@
-#!/usr/bin/env node
-
 var async = require('async')
   , fs = require('fs')
-  , handlebars = require('handlebars')
-  , request = require('request')
   , _ = require('underscore')
   , nodeio = require('node.io')
   , util = require('util');
@@ -159,6 +155,17 @@ var useShowIds = function(shows, episodes) {
   }
   return use_show_ids;
 };
+
+
+// launchd requires us to be alive for at least 10 seconds
+var sleep = function(s) {
+  var e = new Date().getTime() + (s * 1000);
+
+  while (new Date().getTime() <= e) {
+    ;
+  }
+};
+sleep(10);
 
 readPlistsAndScrapeEZTV(function(err, data) {
   if (err) { console.log(err); }
@@ -399,3 +406,5 @@ readPlistsAndScrapeEZTV(function(err, data) {
 
 });
 
+
+//exit(0)

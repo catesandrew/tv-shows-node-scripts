@@ -250,7 +250,13 @@ var downloadTorrent = function(callback, downloadfile, dir) {
   // incomplete torrent files.
   request.addListener('response', function (response) {
     response.setEncoding('binary');
+    //console.log("Status Code: " + response.statusCode);
+    //console.log("HEADERS: " + JSON.stringify(response.headers));
     //console.log("File size: " + response.headers['content-length'] + " bytes.");
+    var fileSize = response.headers['content-length'];
+    if ( !fileSize ) {
+      return callback("No Content Length");
+    }
     var body = '';
     response.addListener('data', function (chunk) {
       body += chunk;
@@ -665,6 +671,13 @@ Utils.prototype = {
     });
   },
   writePlist:function(callback, obj, output) {
+    var data = utils.exportToPlist(obj);
+    fs.writeFile(output, data, function (err) {
+      if (err) { callback(err); }
+      callback(null, 'successfully saved file to ' + output);
+    });
+  },
+  exportToPlist:function(obj) {
     var headers = [
       '<?xml version="1.0" encoding="UTF-8"?>',
       '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
@@ -676,10 +689,7 @@ Utils.prototype = {
       plist.stringify(obj) + 
       "\n</plist>";
 
-    fs.writeFile(output, data, function (err) {
-      if (err) { callback(err); }
-      callback(null, 'successfully saved file to ' + output);
-    });
+    return data;
   },
   isEpisodeInfo:function(obj) {
     return obj instanceof EpisodeInfo;
@@ -737,7 +747,8 @@ Utils.prototype = {
           callback(null, data.msg);
         }
       } else {
-        callback(null);
+        //callback(null);
+        callback('Something went wrong with: ' + torrents);
       }
     });
     
@@ -794,7 +805,7 @@ EpisodeInfo.prototype = {
     this.episodenumbers = episodeInfo.episodenumbers;
     this.seasonnumber = episodeInfo.seasonnumber;
   },
-  toPlist:function() {
+  toPlist:function(additional_optionals) {
     // Format episode number into string, or a list
     var epno = utils.formatEpisodeNumbers(this.episodenumbers);
     var optionals = [
@@ -803,6 +814,7 @@ EpisodeInfo.prototype = {
       ["Subscribed", "subscribed"],
       ["ShowId", "showId"]
     ];
+    _.extend(optionals, additional_optionals);
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
       if ( typeof(that[optional[1]]) !== "undefined" ) {
@@ -886,7 +898,7 @@ NoSeasonEpisodeInfo.prototype = {
     }
     this.episodenumbers = noSeasonEpisodeInfo.episodenumbers;
   },
-  toPlist:function() {
+  toPlist:function(additional_optionals) {
     // Format episode number into string, or a list
     var epno = utils.formatEpisodeNumbers(this.episodenumbers);
     var optionals = [
@@ -895,6 +907,7 @@ NoSeasonEpisodeInfo.prototype = {
       ["Subscribed", "subscribed"],
       ["ShowId", "showId"]
     ];
+    _.extend(optionals, additional_optionals);
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
       if ( typeof(that[optional[1]]) !== "undefined" ) {
@@ -986,13 +999,14 @@ DatedEpisodeInfo.prototype = {
     this.day = datedEpisodeInfo.day;
     this.episodenumbers = datedEpisodeInfo.episodenumbers;
   },
-  toPlist:function() {
+  toPlist:function(additional_optionals) {
     var optionals = [
       ["ExactName", "exactname"],
       ["Status", "status"],
       ["Subscribed", "subscribed"],
       ["ShowId", "showId"]
     ];
+    _.extend(optionals, additional_optionals);
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
       if ( typeof(that[optional[1]]) !== "undefined" ) {
@@ -1054,13 +1068,14 @@ AnimeEpisodeInfo.prototype = {
       ", E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
   },
-  toPlist:function() {
+  toPlist:function(additional_optionals) {
     var optionals = [
       ["ExactName", "exactname"],
       ["Status", "status"],
       ["Subscribed", "subscribed"],
       ["ShowId", "showId"]
     ];
+    _.extend(optionals, additional_optionals);
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
       if ( typeof(that[optional[1]]) !== "undefined" ) {
@@ -1115,13 +1130,14 @@ NoEpisodeInfo.prototype = {
   equals:function(noEpisodeInfo) {
     return this.seriesname === noEpisodeInfo.seriesname;
   },
-  toPlist:function() {
+  toPlist:function(additional_optionals) {
     var optionals = [
       ["ExactName", "exactname"],
       ["Status", "status"],
       ["Subscribed", "subscribed"],
       ["ShowId", "showId"]
     ];
+    _.extend(optionals, additional_optionals);
     var obj = {}, that = this;
     _.each(optionals, function(optional, index) {
       if ( typeof(that[optional[1]]) !== "undefined" ) {

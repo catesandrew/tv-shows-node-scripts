@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
@@ -8,92 +10,39 @@ var async = require('async')
 
 var utils = require('./utils.js').utils;
 
-var args = process.argv.slice(2);
-if (args && args.length > 0) {
-  var showId = args[0];
+program
+  .version('0.1')
+  .description('Lookup episodes from tvdb for a given series id')
+  .option('-i, --seriesId <id>', 'tvdb series id', parseInt)
+  .parse(process.argv);
 
+if (program.seriesId) {
+  var seriesId = program.seriesId;
   utils.getSeriesInfo(function(err, result) {
     if (err) { 
       console.log(err);
     }
     else {
-      //var incoming = ["13 - Bugs Bunny Gets the Boid", "13 - Rabbit Fire", "01 - Baseball Bugs", "02 - Dough for the Do-Do"];
-      var base_dir = './';
-      var incoming = fs.readdirSync(base_dir);
-      async.forEachSeries(incoming, function(title, next) {
-        var filename = title;
-        var extension = /(?:\.([^.]+))?$/.exec(title)[0];
-        if (extension) {
-          title = title.split(extension)[0];
-        }
-        
-        var levs = [], str_nears, obj_nears;
-
-        // calculate all the levenshtein
-        _.each(result.episodes, function(episode) {
-          var left = ( episode.EpisodeName || "" ).toLowerCase(),
-              right = ( title || "" ).toLowerCase(),
-              lev = utils.levenshtein(left, right);
-          if (typeof(lev) !== 'undefined') {
-            levs.push({
-              'lev':lev,
-              'episode':episode
-            });
-          }
-        });
-        // sort all the levenshtein
-        levs = _.sortBy(levs, function(obj) {
-          return obj.lev;
-        });
-
-        // make your choice
-        if (levs.length > 0) {
-          // get the closest one
-          var lev_val = levs[0].lev; 
-          str_nears = [];
-          obj_nears = [];
-
-          _.each(levs, function(obj) {
-            if ( Math.abs(obj.lev - lev_val) < 6) {
-              //str_nears.push("Lev: " + obj.lev + ", Name: " + obj.episode.EpisodeName);
-              
-              str_nears.push("Lev: " + obj.lev + ", " + obj.episode.toString() + ", EpisodeName: " + obj.episode.EpisodeName);
-              obj_nears.push(obj);
-            }
-          });
-
-          console.log('Choose the closest match: [ "' + title + '" ]');
-          program.choose(str_nears, function(i) {
-            console.log('You chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
-            // TODO: rename the incoming title now
-            fs.renameSync(base_dir + filename, base_dir + obj_nears[i].episode.toFileName() + " - " + title + extension);
-            next();
-          });
-        } else {
-          next();
-        }
-      },
-      function(data) {
-        console.log('all done');
-        process.stdin.destroy();
+      _.each(result.episodes, function(episode) {
+        console.log(episode.toPlist([
+          [ 'ImdbId', 'ImdbId' ],
+          [ 'SeriesId', 'TvdbSeriesId' ],
+          [ 'EpisodeId', 'TvdbEpisodeId' ],
+          [ 'Overview', 'Overview' ],
+          [ 'EpisodeName', 'EpisodeName' ],
+          [ 'Episode', 'Episode' ],
+          [ 'Director', 'Director' ],
+          [ 'Season', 'Season' ],
+          [ 'Writer', 'Writer' ],
+          [ 'Artwork', 'Artwork' ],
+          [ 'FirstAired', 'FirstAiredOn' ]
+        ]));
       });
     }
-  }, showId);
-
-}                      
-
-//thetvdb.com/api/0629B785CE550C8D/series/74845/all/en.zip
-//thetvdb.com/api/0629B785CE550C8D/episodes/295369/en.xml
-//console.log(episode.toPlist([
-  //[ 'ImdbId', 'ImdbId' ],
-  //[ 'SeriesId', 'TvdbSeriesId' ],
-  //[ 'EpisodeId', 'TvdbEpisodeId' ],
-  //[ 'Overview', 'Overview' ],
-  //[ 'EpisodeName', 'EpisodeName' ],
-  //[ 'Episode', 'Episode' ],
-  //[ 'Director', 'Director' ],
-  //[ 'Season', 'Season' ],
-  //[ 'Writer', 'Writer' ],
-  //[ 'Artwork', 'Artwork' ],
-  //[ 'FirstAired', 'FirstAiredOn' ]
-//]));
+  }, seriesId);
+} 
+else {
+  console.log(program.description());
+  console.log("Version: " + program.version());
+  console.log(program.helpInformation());
+}

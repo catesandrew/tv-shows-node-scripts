@@ -13,6 +13,7 @@ program
   .version('0.1')
   .description('Search for a series from the one supplied.')
   .option('-n, --series-name <id>', 'tvdb series name')
+  .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
 if (program.seriesName) {

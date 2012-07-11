@@ -1,6 +1,7 @@
 /*
  * This script downloads the shows from eztv.it/showlist/
  * Its used in conjunction with tvshows app to update your show list.
+ * 1) This is called first to get available shows.
  */
 var async = require('async')
   , fs = require('fs')
@@ -13,7 +14,8 @@ var utils = require('./utils.js').utils;
 program
   .version('0.1')
   .description( "This script downloads the shows from eztv.it/showlist/" )
-  .option('-t, --tv-shows [file]', 'optional destination file to save tvshows plist to', '~/Library/Application Support/TVShows/TVShows.plist');
+  .option('-t, --tv-shows [file]', 'optional destination file to save tvshows plist to', '~/Library/Application Support/TVShows/TVShows.plist')
+  .option('-d, --debug', 'output extra debug information');
 
 program.on('--help', function(){
   console.log(program.description());
@@ -161,7 +163,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
     "Shows": shows,
     "Version": "1"
   };
-  var home = process.env.HOME;
+
   var tv_shows_db = utils.expandHomeDir(program.tvShows);
   utils.writePlist(function(err, obj) {
     if (err) { console.log(err); }

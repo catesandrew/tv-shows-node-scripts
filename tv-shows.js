@@ -1,11 +1,27 @@
+/*
+ * This script is scheduled to run every X minutes looking
+ * for new shows to the ones you have subscribed to.
+ */
 var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
   , nodeio = require('node.io')
+  , plist = require('plist')
+  , program = require('commander')
   , util = require('util');
 
-var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
+program
+  .version('0.1')
+  .description('Check for new available episodes from list of subscribed shows')
+  .option('-t, --tv-shows [file]', 'optional destination file to save tvshows plist to', '~/Library/Application Support/TVShows/TVShows.plist')
+  .option('-d, --debug', 'output extra debug information');
+
+program.on('--help', function(){
+  console.log(program.description());
+});
+
+program.parse(process.argv);
 
 var show_id_re = new RegExp("\\/shows\\/(?:add\\/)?([0-9]+)\\/.*");
 var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+? [MG]B)\\)$");
@@ -149,7 +165,6 @@ var useShowIds = function(shows, episodes) {
   }
   return use_show_ids;
 };
-
 
 // launchd requires us to be alive for at least 10 seconds
 var sleep = function(s) {
@@ -375,7 +390,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
       return show.HumanName; 
     });
 
-    var plist_file = utils.expandHomeDir("~/Library/Application Support/TVShows/TVShows.plist");
+    var plist_file = utils.expandHomeDir(program.tvShows);
     utils.writePlist(function(err, obj) {
       if (err) { console.log(err); }
       }, { "Shows": shows, "Version": "1" }, plist_file
@@ -383,7 +398,6 @@ readPlistsAndScrapeEZTV(function(err, data) {
   });
 
 
-  
   // use unique names
   // build table of unique-name to subscribed shows,
   // go through all episodes, build unique name
@@ -399,6 +413,3 @@ readPlistsAndScrapeEZTV(function(err, data) {
   // group all unique-names from episodes
 
 });
-
-
-//exit(0)

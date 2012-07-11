@@ -1,12 +1,26 @@
+/*
+ * This script downloads a list of torrents from a list
+ * of given episodes for a particular show.
+ * 3) This is called with a chosen episode from the list
+ *    of available episodes from 'get-show-details' and then
+ *    all the episode(s) torrent files are downloaded.
+ */
 var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
   , nodeio = require('node.io')
   , plist = require('plist')
+  , program = require('commander')
   , util = require('util');
 
-var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
+program
+  .version('0.1')
+  .description('Get a list of available episodes to download from eztv')
+  .option('-s, --show-id <id>', 'eztv show id')
+  .option('-f, --file-name <string>', 'an arbitrary filename, used to parse a show from')
+  .option('-d, --debug', 'output extra debug information')
+  .parse(process.argv);
 
 var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+? [MG]B)\\)$");
 var scrapeEZTV = function(_callback, showId) {
@@ -65,6 +79,7 @@ var scrapeEZTV = function(_callback, showId) {
             //_callback(err); 
           }
           else {
+            // TODO: need auto merging!
             episode_info.showId = episode.showId;
             episode_info.size = episode.size;
             episode_info.torrents = episode.torrents;
@@ -118,10 +133,9 @@ var readPlistsAndScrapeEZTV = function(callback, showId, fileName) {
     });
 };
 
-var args = process.argv.slice(2);
-if (args && args.length > 0) {
-  var showId = args[0];
-  var fileName = args[1];
+if (program.showId && program.fileName) {
+  var showId = program.showId,
+      fileName = program.fileName;
 
   readPlistsAndScrapeEZTV(function(err, data) {
     if (err) { console.log(err); }
@@ -136,9 +150,9 @@ if (args && args.length > 0) {
       //console.log("ShowId: " + episode.showId);
       //console.log(episode.toString());
     //});
-    console.log('---- Incoming Show ----');
-    console.log("ShowId: " + data.episode.showId);
-    console.log(data.episode.toString());
+    //console.log('---- Incoming Show ----');
+    //console.log("ShowId: " + data.episode.showId);
+    //console.log(data.episode.toString());
     
     // use show ids
     // 1) build table of showId to subscribed shows
@@ -243,7 +257,8 @@ if (args && args.length > 0) {
         var incoming_episode = loepisode[0];
 
         if (utils.isNoEpisodeInfo(known_show)) {
-          // copy over known properties
+          // TODO: need auto merging!
+          // till then..., copy over known properties
           incoming_episode.status = known_show.status;
           incoming_episode.exactname = known_show.exactname;
           incoming_episode.subscribed = true;
@@ -310,4 +325,9 @@ if (args && args.length > 0) {
     } 
 
   }, showId, fileName);
+}
+else {
+  console.log(program.description());
+  console.log("Version: " + program.version());
+  console.log(program.helpInformation());
 }

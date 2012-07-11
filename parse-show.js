@@ -13,6 +13,7 @@ program
   .version('0.1')
   .description('Try to parse a given filename')
   .option('-f, --file-name <string>', 'an arbitrary filename')
+  .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
 if (program.fileName) {

@@ -14,6 +14,7 @@ program
   .version('0.1')
   .description('Lookup episodes from tvdb for a given series id')
   .option('-i, --series-id <id>', 'tvdb series id', parseInt)
+  .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
 if (program.seriesId) {

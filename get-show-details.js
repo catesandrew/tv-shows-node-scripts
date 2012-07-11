@@ -1,12 +1,26 @@
+/*
+ * This script downloads all the episodes for a given show
+ * from eztv. Its used in conjunction with the tvshows
+ * app when a user subscribes to a show and is given
+ * a list of episodes to start a subscription from.
+ * 2) This is called to get list of available episodes
+ *    for a selected show.
+ */
 var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
   , nodeio = require('node.io')
   , plist = require('plist')
+  , program = require('commander')
   , util = require('util');
 
-var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
+program
+  .version('0.1')
+  .description('Get a list of available episodes to download from eztv')
+  .option('-s, --show-id <id>', 'eztv show id')
+  .option('-d, --debug', 'output extra debug information')
+  .parse(process.argv);
 
 var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+? [MG]B)\\)$");
 var scrapeEZTV = function(_callback, showId) {
@@ -65,6 +79,7 @@ var scrapeEZTV = function(_callback, showId) {
             //_callback(err); 
           }
           else {
+            // TODO copy this over automatically!!
             episode_info.showId = episode.showId;
             episode_info.size = episode.size;
             episode_info.torrents = episode.torrents;
@@ -107,9 +122,8 @@ var readPlistsAndScrapeEZTV = function(callback, showId) {
     });
 };
 
-var args = process.argv.slice(2);
-if (args && args.length > 0) {
-  var showId = args[0];
+if (program.showId) {
+  var showId = program.showId;
 
   readPlistsAndScrapeEZTV(function(err, data) {
     if (err) { console.log(err); }
@@ -212,7 +226,6 @@ if (args && args.length > 0) {
       //console.log(loloepisodes[key]);
     //});
 
-    
     // 4) Go through all episodes, using showId of
     // the episode and see if its in the subscribed 
     // shows table. 
@@ -230,40 +243,11 @@ if (args && args.length > 0) {
         var incoming_episode = loepisode[0];
 
         if (utils.isNoEpisodeInfo(known_show)) {
-          // copy over known properties
+          // TODO This should get copied over automatially!!
+          // till then..., copy over known properties
           incoming_episode.status = known_show.status;
           incoming_episode.exactname = known_show.exactname;
           incoming_episode.subscribed = known_show.subscribed;
-          
-          //utils.downloadTorrents(function(err, data) {
-            //if (err) {
-              //// TODO should we update the show info?
-              //console.log("Error: " + data);
-
-            //} else {
-              //console.log("Success: " + data);
-              
-              //// replace known show with incoming episode
-              //known_shows[key] = incoming_episode;
-            //}
-          //}, incoming_episode.torrents, torrent_dir);
-        }
-        else if (incoming_episode.compare(known_show) > 0) {
-          // the incoming_episode is newer than the latest known show
-          
-          //utils.downloadTorrents(function(err, data) {
-            //if (err) {
-              //// TODO: should we update the show info?
-              //console.log("Error: " + data);
-
-            //} else {
-              //console.log("Success: " + data);
-
-              //// update known_show to latest version
-              //known_show.updateTo(incoming_episode);
-
-            //}
-          //}, incoming_episode.torrents, torrent_dir);
         }
         shows.push(incoming_episode.toPlist([
           ["FileName", "filename"]
@@ -280,4 +264,8 @@ if (args && args.length > 0) {
 
   }, showId);
 }
-
+else {
+  console.log(program.description());
+  console.log("Version: " + program.version());
+  console.log(program.helpInformation());
+}

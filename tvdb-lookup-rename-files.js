@@ -23,12 +23,13 @@ program
     "Now when you go to add tags to the file name, since the 'SxxEyy' are\n" + 
     "present in the filename, it will be tagged easily." )
   .option('-i, --series-id <id>', 'tvdb series id', parseInt)
-  .option('-d, --directory <dir>', 'directory of files to rename.')
+  .option('-p, --path <dir>', 'directory path of files to rename.')
+  .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
-if (program.seriesId && program.directory) {
+if (program.seriesId && program.path) {
   var seriesId = program.seriesId;
-  var base_dir = program.dir;
+  var base_dir = program.path;
 
   utils.getSeriesInfo(function(err, result) {
     if (err) { 

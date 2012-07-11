@@ -11,6 +11,7 @@ program
   .version('0.1')
   .description('Get the latest Season and Episode for a given show id')
   .option('-s, --show-id <id>', 'eztv show id')
+  .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
 var scrapeEZTV = function(_callback, showId) {

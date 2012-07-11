@@ -13,7 +13,7 @@ var utils = require('./utils.js').utils;
 program
   .version('0.1')
   .description('Lookup episodes from tvdb for a given series id')
-  .option('-i, --seriesId <id>', 'tvdb series id', parseInt)
+  .option('-i, --series-id <id>', 'tvdb series id', parseInt)
   .parse(process.argv);
 
 if (program.seriesId) {

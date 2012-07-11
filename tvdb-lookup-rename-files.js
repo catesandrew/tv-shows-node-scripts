@@ -22,7 +22,7 @@ program
     "just has the episode name and renames it with the proper format above.\n" +
     "Now when you go to add tags to the file name, since the 'SxxEyy' are\n" + 
     "present in the filename, it will be tagged easily." )
-  .option('-i, --seriesId <id>', 'tvdb series id', parseInt)
+  .option('-i, --series-id <id>', 'tvdb series id', parseInt)
   .option('-d, --directory <dir>', 'directory of files to rename.')
   .parse(process.argv);
 

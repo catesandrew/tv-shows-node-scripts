@@ -296,6 +296,23 @@ var strcmp = function( str1, str2 ) {
   return ( ( str1 == str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
 };
 
+var calcPadding = function(num) {
+  var min_len = 2,
+      padding = "",
+      len = num.toString().length;
+
+  if (len > min_len) {
+    min_len = len;
+  }
+  for(var i=0; i<min_len;i++) {
+    padding += "0";
+  }
+  return {
+    len:(-1 * min_len),
+    padding:padding
+  }
+};
+
 // used for tvdb
 var cache = {};
 
@@ -303,17 +320,17 @@ var Utils = function(){};
 Utils.prototype = {
   formatEpisodeNumbers:function(episodenumbers){
     // Format episode number(s) into string, using configured values
-    var epno;
     if (episodenumbers.length === 1){ 
-      epno = ('00' + episodenumbers[0]).slice(-2);
+      var num = episodenumbers[0],
+          obj = calcPadding(num);
+      return (obj.padding + num).slice(obj.len);
     } else {
       var copy = _.map(episodenumbers, function(num) {
-        return ('00' + num).slice(-2);
+        var obj = calcPadding(num);
+        return (obj.padding + num).slice(obj.len);
       });
       return copy.join('-');
     }
-
-    return epno;
   },
   formatEpisodeName:function(names, join_with){
     //Takes a list of episode names, formats them into a string.
@@ -907,36 +924,18 @@ function EpisodeInfo(opts) {
 }
 EpisodeInfo.prototype = {
   toString:function() {
-    var min_len = 2;
-    var len = this.seasonnumber.toString().length;
-    if (len > 2) {
-      min_len = len;
-    }
-    var padding = "";
-    for(var i=0; i<min_len;i++) {
-      padding += "0";
-    }
-
+    var obj = calcPadding(this.seasonnumber);
     return this.seriesname + 
       ", S: " + 
-      (padding + this.seasonnumber).slice(-1 * min_len) +
+      (obj.padding + this.seasonnumber).slice(obj.len) +
       ", E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
   },
   toFileName:function(){
-    var min_len = 2;
-    var len = this.seasonnumber.toString().length;
-    if (len > 2) {
-      min_len = len;
-    }
-    var padding = "";
-    for(var i=0; i<min_len;i++) {
-      padding += "0";
-    }
-
+    var obj = calcPadding(this.seasonnumber);
     return this.seriesname + 
       " - S" + 
-      (padding + this.seasonnumber).slice(-1 * min_len) +
+      (obj.padding+ this.seasonnumber).slice(obj.len) +
       "E" +
       utils.formatEpisodeNumbers(this.episodenumbers);
   },

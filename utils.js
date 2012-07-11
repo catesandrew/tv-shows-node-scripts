@@ -654,8 +654,7 @@ Utils.prototype = {
   readPlists:function(callback) {
     async.parallel({
       userPrefs: function(callback) {
-        var home = process.env.HOME;
-        var user_prefs_file = home + "/Library/Preferences/net.sourceforge.tvshows.plist";
+        var user_prefs_file = utils.expandHomeDir("~/Library/Preferences/net.sourceforge.tvshows.plist");
         readPlist(function(err, data) {
           //if (err) { callback(err); }
           if (err) {
@@ -671,8 +670,7 @@ Utils.prototype = {
         }, user_prefs_file);
       },
       showDb: function(callback) {
-        var home = process.env.HOME;
-        var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
+        var tv_shows_db = utils.expandHomeDir("~/Library/Application Support/TVShows/TVShows.plist");
         readPlist(function(err, data) {
           //if (err) { callback(err); }
           if (err) {

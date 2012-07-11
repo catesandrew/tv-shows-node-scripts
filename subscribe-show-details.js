@@ -22,6 +22,12 @@ program
   .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
+var verbose = function() {
+  if (program.debug) { 
+    console.log.apply(null, arguments);
+  }
+};
+
 var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+? [MG]B)\\)$");
 var scrapeEZTV = function(_callback, showId) {
   var methods = {
@@ -140,19 +146,19 @@ if (program.showId && program.fileName) {
   readPlistsAndScrapeEZTV(function(err, data) {
     if (err) { console.log(err); }
 
-    //console.log('---- Incoming Shows ----');
-    //_.each(data.episodes, function(episode) {
-      //console.log("ShowId: " + episode.showId + ", Size: " + episode.size);
-      //console.log(episode.toString());
-    //});
-    //console.log('---- Known Shows ----');
-    //_.each(data.plists.showDb.Shows, function(episode) {
-      //console.log("ShowId: " + episode.showId);
-      //console.log(episode.toString());
-    //});
-    //console.log('---- Incoming Show ----');
-    //console.log("ShowId: " + data.episode.showId);
-    //console.log(data.episode.toString());
+    verbose('---- Incoming Shows ----');
+    _.each(data.episodes, function(episode) {
+      verbose("ShowId: " + episode.showId + ", Size: " + episode.size);
+      verbose(episode.toString());
+    });
+    verbose('---- Known Shows ----');
+    _.each(data.plists.showDb.Shows, function(episode) {
+      verbose("ShowId: " + episode.showId);
+      verbose(episode.toString());
+    });
+    verbose('---- Incoming Show ----');
+    verbose("ShowId: " + data.episode.showId);
+    verbose(data.episode.toString());
     
     // use show ids
     // 1) build table of showId to subscribed shows
@@ -235,11 +241,11 @@ if (program.showId && program.fileName) {
       });
       loloepisodes[key] = result; 
     });
-    //var keys = _.keys(loloepisodes);
-    //_.each(keys, function(key, index) {
-      //console.log("ShowId: " + key);
-      //console.log(loloepisodes[key]);
-    //});
+    var keys = _.keys(loloepisodes);
+    _.each(keys, function(key, index) {
+      verbose("ShowId: " + key);
+      verbose(loloepisodes[key]);
+    });
     
     // 4) Go through all episodes, using showId of
     // the episode and see if its in the subscribed 
@@ -249,7 +255,7 @@ if (program.showId && program.fileName) {
     if (loloepisode) {
       // Do the magic here. We found a possible 
       // show to download that has been subscribed to.
-      //console.log('Found show ' + key + ', in lolo episodes');
+      verbose('Found show ' + key + ', in lolo episodes');
       async.forEachSeries(loloepisode, function(loepisode, innerCb) {
         var known_show = known_shows[showId];
         // for now, just use the first one, who cares about
@@ -264,15 +270,15 @@ if (program.showId && program.fileName) {
           incoming_episode.subscribed = true;
           
           // download
-          console.log('Processing ' + incoming_episode.toString());
+          verbose('Processing ' + incoming_episode.toString());
           utils.downloadTorrents(function(err, data) {
             if (err) {
               // TODO should we update the show info?
-              console.log("Error: " + err);
+              verbose("Error: " + err);
               
               innerCb(); // advance to the next loepisode 
             } else {
-              console.log("Success: " + data);
+              verbose("Success: " + data);
               
               // replace known show with incoming episode
               known_shows[showId] = incoming_episode;
@@ -285,15 +291,15 @@ if (program.showId && program.fileName) {
           // the incoming_episode is newer than the latest known show
           
           // download
-          console.log('Processing ' + incoming_episode.toString());
+          verbose('Processing ' + incoming_episode.toString());
           utils.downloadTorrents(function(err, data) {
             if (err) {
               // TODO: should we update the show info?
-              console.log("Error: " + err);
+              verbose("Error: " + err);
 
               innerCb();// advance to the next loepisode 
             } else {
-              console.log("Success: " + data);
+              verbose("Success: " + data);
 
               // update known_show to latest version
               known_show.updateTo(incoming_episode);

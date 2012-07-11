@@ -14,6 +14,12 @@ program
   .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
+var verbose = function() {
+  if (program.debug) { 
+    console.log.apply(null, arguments);
+  }
+};
+
 var scrapeEZTV = function(_callback, showId) {
   var methods = {
     input:false,
@@ -80,10 +86,10 @@ if (program.showId) {
   readPlistsAndScrapeEZTV(function(err, data) {
     if (err) { console.log(err); }
 
-    //_.each(data.episodes, function(episode) {
-      //console.log(episode.toString());
-      //console.log(episode.getepdata());
-    //});
+    _.each(data.episodes, function(episode) {
+      verbose(episode.toString());
+      verbose(episode.getepdata());
+    });
 
     var maxSeason = 0, maxEpisode = 0;
     var seasonNo, episodeNo, epData;

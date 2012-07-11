@@ -23,6 +23,12 @@ program.on('--help', function(){
 
 program.parse(process.argv);
 
+var verbose = function() {
+  if (program.debug) { 
+    console.log.apply(null, arguments);
+  }
+};
+
 var scrapeEZTV = function(_callback) {
   var methods = {
     input:false,
@@ -167,7 +173,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
   var tv_shows_db = utils.expandHomeDir(program.tvShows);
   utils.writePlist(function(err, obj) {
     if (err) { console.log(err); }
-    //console.log(obj);
+    verbose(obj);
     
     }, save_these_shows, tv_shows_db
   );

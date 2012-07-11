@@ -17,6 +17,12 @@ program
   .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
+var verbose = function() {
+  if (program.debug) { 
+    console.log.apply(null, arguments);
+  }
+};
+
 if (program.seriesId) {
   var seriesId = program.seriesId;
   utils.getSeriesInfo(function(err, result) {

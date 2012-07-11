@@ -23,6 +23,12 @@ program.on('--help', function(){
 
 program.parse(process.argv);
 
+var verbose = function() {
+  if (program.debug) { 
+    console.log.apply(null, arguments);
+  }
+};
+
 var show_id_re = new RegExp("\\/shows\\/(?:add\\/)?([0-9]+)\\/.*");
 var size_re = new RegExp(".*\\(([0-9]+?[.][0-9]+? [MG]B)\\)$");
 var scrapeEZTV = function(_callback) {
@@ -179,27 +185,27 @@ sleep(10);
 readPlistsAndScrapeEZTV(function(err, data) {
   if (err) { console.log(err); }
 
-  //console.log('---- Incoming Shows ----');
-  //_.each(data.episodes, function(episode) {
-    //console.log("ShowId: " + episode.showId + ", Size: " + episode.size);
-    //console.log(episode.toString());
-    //console.log(episode.torrents);
-    //console.log(episode.getepdata());
-  //});
-  //console.log('---- Known Shows ----');
-  //_.each(data.plists.showDb.Shows, function(episode) {
-    //console.log("ShowId: " + episode.showId);
-    //console.log(episode.toString());
-    //console.log(episode.torrents);
-    //console.log(episode.getepdata());
-  //});
+  verbose('---- Incoming Shows ----');
+  _.each(data.episodes, function(episode) {
+    verbose("ShowId: " + episode.showId + ", Size: " + episode.size);
+    verbose(episode.toString());
+    verbose(episode.torrents);
+    verbose(episode.getepdata());
+  });
+  verbose('---- Known Shows ----');
+  _.each(data.plists.showDb.Shows, function(episode) {
+    verbose("ShowId: " + episode.showId);
+    verbose(episode.toString());
+    verbose(episode.torrents);
+    verbose(episode.getepdata());
+  });
   
   var known_episodes = data.plists.showDb.Shows || [];
 
   // We will use showId(s) from eztv if all the subscribed shows
   // have showId(s) and all the scrubbed episodes from eztv have them.
   var use_show_ids = useShowIds(known_episodes, data.episodes);
-  //console.log("Use show ids: " + use_show_ids);
+  verbose("Use show ids: " + use_show_ids);
                                           
   // save the latest incoming episodes from eztv
   //var bb = _.map(data.episodes, function(show) { return show.toPlist(); });
@@ -223,7 +229,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
       subscribed_shows[key] = known_episode;
     }
   });
-  //console.log(subscribed_shows);
+  verbose(subscribed_shows);
 
   // 2) group all similar eipsodes by 
   //   seriesname, seasonnumber, episodenumbers OR
@@ -297,11 +303,11 @@ readPlistsAndScrapeEZTV(function(err, data) {
     });
     loloepisodes[key] = result; 
   });
-  //var keys = _.keys(loloepisodes);
-  //_.each(keys, function(key, index) {
-    //console.log("ShowId: " + key);
-    //console.log(loloepisodes[key]);
-  //});
+  var keys = _.keys(loloepisodes);
+  _.each(keys, function(key, index) {
+    verbose("ShowId: " + key);
+    verbose(loloepisodes[key]);
+  });
   
   // 4) Go through all episodes, using showId of
   // the episode and see if its in the subscribed 
@@ -313,7 +319,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
     if (loloepisode) {
       // Do the magic here. We found a possible 
       // show to download that has been subscribed to.
-      //console.log('Found show ' + key + ', in lolo episodes');
+      verbose('Found show ' + key + ', in lolo episodes');
       async.forEachSeries(loloepisode, function(loepisode, innerCb) {
         var known_show = known_shows[key];
         // for now, just use the first one, who cares about
@@ -327,16 +333,16 @@ readPlistsAndScrapeEZTV(function(err, data) {
           incoming_episode.subscribed = known_show.subscribed;
           
           // download
-          //console.log('downloading ' + incoming_episode.toString());
+          verbose('downloading ' + incoming_episode.toString());
           utils.downloadTorrents(function(err, data) {
             if (err) {
               // TODO should we update the show info?
-              console.log("Error: " + data);
+              verbose("Error: " + data);
 
               // advance to the next loepisode
               innerCb();
             } else {
-              console.log("Success: " + data);
+              verbose("Success: " + data);
               
               // replace known show with incoming episode
               known_shows[key] = incoming_episode;
@@ -349,16 +355,16 @@ readPlistsAndScrapeEZTV(function(err, data) {
           // the incoming_episode is newer than the latest known show
           
           // download
-          //console.log('downloading ' + incoming_episode.toString());
+          verbose('downloading ' + incoming_episode.toString());
           utils.downloadTorrents(function(err, data) {
             if (err) {
               // TODO: should we update the show info?
-              console.log("Error: " + data);
+              verbose("Error: " + data);
 
               // advance to the next loepisode
               innerCb();
             } else {
-              console.log("Success: " + data);
+              verbose("Success: " + data);
 
               // update known_show to latest version
               known_show.updateTo(incoming_episode);

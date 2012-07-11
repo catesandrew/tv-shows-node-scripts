@@ -16,6 +16,12 @@ program
   .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
 
+var verbose = function() {
+  if (program.debug) { 
+    console.log.apply(null, arguments);
+  }
+};
+
 if (program.fileName) {
   var fileName = program.fileName;
   utils.parseFile(function(err, episode_info) {

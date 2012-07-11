@@ -9,9 +9,6 @@ var async = require('async')
   , util = require('util');
 
 var utils = require('./utils.js').utils;
-
-
-
 program
   .version('0.1')
   .description( "Renames tv show filenames into proper 'SeriesName - SxxEyy' format.\n"  +
@@ -26,6 +23,12 @@ program
   .option('-p, --path <dir>', 'directory path of files to rename.')
   .option('-d, --debug', 'output extra debug information')
   .parse(process.argv);
+
+var verbose = function() {
+  if (program.debug) { 
+    console.log.apply(null, arguments);
+  }
+};
 
 if (program.seriesId && program.path) {
   var seriesId = program.seriesId;
@@ -80,7 +83,7 @@ if (program.seriesId && program.path) {
 
           console.log('Choose the closest match: [ "' + title + '" ]');
           program.choose(str_nears, function(i) {
-            console.log('You chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
+            verbose('You chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
             // TODO: rename the incoming title now
             fs.renameSync(base_dir + filename, base_dir + obj_nears[i].episode.toFileName() + " - " + title + extension);
             next();
@@ -90,7 +93,7 @@ if (program.seriesId && program.path) {
         }
       },
       function(data) {
-        console.log('all done');
+        verbose('all done');
         process.stdin.destroy();
       });
     }

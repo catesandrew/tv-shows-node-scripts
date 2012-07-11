@@ -17,8 +17,16 @@ if (args && args.length > 0) {
       console.log(err);
     }
     else {
-      var incoming = ["daring the backstroke", "shit highway", "cankles", "allosaurus crush castle"];
+      //var incoming = ["13 - Bugs Bunny Gets the Boid", "13 - Rabbit Fire", "01 - Baseball Bugs", "02 - Dough for the Do-Do"];
+      var base_dir = './';
+      var incoming = fs.readdirSync(base_dir);
       async.forEachSeries(incoming, function(title, next) {
+        var filename = title;
+        var extension = /(?:\.([^.]+))?$/.exec(title)[0];
+        if (extension) {
+          title = title.split(extension)[0];
+        }
+        
         var levs = [], str_nears, obj_nears;
 
         // calculate all the levenshtein
@@ -47,15 +55,18 @@ if (args && args.length > 0) {
 
           _.each(levs, function(obj) {
             if ( Math.abs(obj.lev - lev_val) < 6) {
-              str_nears.push("Lev: " + obj.lev + ", Name: " + obj.episode.EpisodeName);
+              //str_nears.push("Lev: " + obj.lev + ", Name: " + obj.episode.EpisodeName);
+              
+              str_nears.push("Lev: " + obj.lev + ", " + obj.episode.toString() + ", EpisodeName: " + obj.episode.EpisodeName);
               obj_nears.push(obj);
             }
           });
 
           console.log('Choose the closest match: [ "' + title + '" ]');
           program.choose(str_nears, function(i) {
-            console.log('you chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
+            console.log('You chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
             // TODO: rename the incoming title now
+            fs.renameSync(base_dir + filename, base_dir + obj_nears[i].episode.toFileName() + " - " + title + extension);
             next();
           });
         } else {

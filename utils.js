@@ -780,12 +780,14 @@ Utils.prototype = {
         EpisodeId: 'TvdbEpisodeId',
         Overview: 'Overview',
         EpisodeName: 'EpisodeName',
-        Episode: 'Episode',
         Director: 'Director',
-        Season: 'Season',
         Writer: 'Writer',
         Artwork: 'Artwork',
         FirstAired: 'FirstAiredOn'
+      };
+      var optReqMapping = {
+        Episode: 'Episode',
+        Season: 'Season'
       };
       // parse it into an Episode derivative
       var episodes = result.episodes || [];
@@ -793,6 +795,15 @@ Utils.prototype = {
         obj = {
           HumanName: episode.HumanName
         };
+        _.each(optReqMapping, function(trgKey, srcKey) {
+          var srcValue = episode[srcKey];
+          if (srcValue) {
+            if (!_.isEmpty(srcValue)) {
+              obj[trgKey] = srcValue;
+            }
+          }
+        });
+
         utils.parseShow(function(err, episode_info) {
           if (err) { console.log(err); }
           else {
@@ -892,10 +903,43 @@ function EpisodeInfo(opts) {
 }
 EpisodeInfo.prototype = {
   toString:function() {
+    var min_len = 2;
+    var len = this.seasonnumber.toString().length;
+    if (len > 2) {
+      min_len = len;
+    }
+    var padding = "";
+    for(var i=0; i<min_len;i++) {
+      padding += "0";
+    }
+
     return this.seriesname + 
       ", S: " + 
-      ('00' + this.seasonnumber).slice(-2) +
+      (padding + this.seasonnumber).slice(-1 * min_len) +
       ", E: " +
+      utils.formatEpisodeNumbers(this.episodenumbers);
+
+    //return this.seriesname + 
+      //", S: " + 
+      //('00' + this.seasonnumber).slice(-2) +
+      //", E: " +
+      //utils.formatEpisodeNumbers(this.episodenumbers);
+  },
+  toFileName:function(){
+    var min_len = 2;
+    var len = this.seasonnumber.toString().length;
+    if (len > 2) {
+      min_len = len;
+    }
+    var padding = "";
+    for(var i=0; i<min_len;i++) {
+      padding += "0";
+    }
+
+    return this.seriesname + 
+      " - S" + 
+      (padding + this.seasonnumber).slice(-1 * min_len) +
+      "E" +
       utils.formatEpisodeNumbers(this.episodenumbers);
   },
   equals:function(episodeInfo) {

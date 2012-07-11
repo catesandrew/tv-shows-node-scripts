@@ -1,10 +1,25 @@
+/*
+ * This script downloads the shows from eztv.it/showlist/
+ * Its used in conjunction with tvshows app to update your show list.
+ */
 var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
+  , program = require('commander')
   , nodeio = require('node.io');
 
-var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
+
+program
+  .version('0.1')
+  .description( "This script downloads the shows from eztv.it/showlist/" )
+  .option('-t, --tv-shows [file.plist]', 'destination file to save tvshows plist to.', '~/Library/Application Support/TVShows/TVShows.plist');
+
+program.on('--help', function(){
+  console.log(program.description());
+});
+
+program.parse(process.argv);
 
 var scrapeEZTV = function(_callback) {
   var methods = {
@@ -24,7 +39,6 @@ var scrapeEZTV = function(_callback) {
           });
           this.emit(shows);
       });
-
     },
     reduce:function(shows) {
       var emit = [], href, matches, obj;
@@ -88,31 +102,6 @@ readPlistsAndScrapeEZTV(function(err, data) {
     process.exit();
   }
  
-  // data 
-  //{ 
-    //shows: [],
-    //plists: { 
-      //userPrefs: { 
-        //AutomaticallyOpenTorrent: true,
-        //CheckDelay: 1,
-        //IsEnabled: false,
-        //'NSWindow Frame MainWindow': '52 111 484 705 0 0 1920 1178 ',
-        //Quality: -1,
-        //SUEnableAutomaticChecks: true,
-        //SUEnableSystemProfiling: true,
-        //SUHasLaunchedBefore: true,
-        //SULastCheckTime: Sun, 08 Jan 2012 15:10:53 GMT,
-        //SUSendProfileInfo: false,
-        //ScriptVersion: '100',
-        //TorrentFolder: '~/Movies' 
-      //},
-      //showDb: { 
-        //Shows: [], 
-        //Version: '1' 
-      //} 
-    //} 
-  //}
-
   var incoming_shows = {},
       known_shows = {};
 
@@ -139,8 +128,13 @@ readPlistsAndScrapeEZTV(function(err, data) {
       if (!known_shows[keys[i]]) {
         shows_to_add.push(incoming_shows[keys[i]]);
       } else {
-        // Could add properties from incoming shows 
-        // like Status to previous known_shows entry
+        // Update known show's status
+        var srcValue = incoming_shows[keys[i]].status;
+        if (srcValue) {
+          if (!_.isEmpty(srcValue)) {
+            known_shows[keys[i]].status = srcValue;
+          }
+        }
       }
     }
     
@@ -168,7 +162,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
     "Version": "1"
   };
   var home = process.env.HOME;
-  var tv_shows_db = home + "/Library/Application Support/TVShows/TVShows.plist";
+  var tv_shows_db = utils.expandHomeDir(program.tvShows);
   utils.writePlist(function(err, obj) {
     if (err) { console.log(err); }
     //console.log(obj);
@@ -176,7 +170,5 @@ readPlistsAndScrapeEZTV(function(err, data) {
     }, save_these_shows, tv_shows_db
   );
 
-
-
-
 });
+

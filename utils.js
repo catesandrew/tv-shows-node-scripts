@@ -920,12 +920,6 @@ EpisodeInfo.prototype = {
       (padding + this.seasonnumber).slice(-1 * min_len) +
       ", E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
-
-    //return this.seriesname + 
-      //", S: " + 
-      //('00' + this.seasonnumber).slice(-2) +
-      //", E: " +
-      //utils.formatEpisodeNumbers(this.episodenumbers);
   },
   toFileName:function(){
     var min_len = 2;

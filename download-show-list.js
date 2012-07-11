@@ -13,7 +13,7 @@ var utils = require('./utils.js').utils;
 program
   .version('0.1')
   .description( "This script downloads the shows from eztv.it/showlist/" )
-  .option('-t, --tv-shows [file.plist]', 'destination file to save tvshows plist to.', '~/Library/Application Support/TVShows/TVShows.plist');
+  .option('-t, --tv-shows [file]', 'optional destination file to save tvshows plist to', '~/Library/Application Support/TVShows/TVShows.plist');
 
 program.on('--help', function(){
   console.log(program.description());
@@ -124,19 +124,19 @@ readPlistsAndScrapeEZTV(function(err, data) {
   if (_.size(known_shows) > 0) {
     var shows_to_add = [];
     var keys = _.keys(incoming_shows);
-    for( var i=0, l=keys.length; i<l; i++) {
-      if (!known_shows[keys[i]]) {
-        shows_to_add.push(incoming_shows[keys[i]]);
+    _.each(keys, function(key) {
+      if (!known_shows[key]) {
+        shows_to_add.push(incoming_shows[key]);
       } else {
         // Update known show's status
-        var srcValue = incoming_shows[keys[i]].status;
+        var srcValue = incoming_shows[key].status;
         if (srcValue) {
           if (!_.isEmpty(srcValue)) {
-            known_shows[keys[i]].status = srcValue;
+            known_shows[key].status = srcValue;
           }
         }
       }
-    }
+    });
     
     // drop the keys of known_shows and use it as an array
     known_shows = _.values(known_shows);
@@ -169,6 +169,4 @@ readPlistsAndScrapeEZTV(function(err, data) {
     
     }, save_these_shows, tv_shows_db
   );
-
 });
-

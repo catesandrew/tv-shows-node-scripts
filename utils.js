@@ -767,6 +767,8 @@ Utils.prototype = {
     });
   },
   getSeriesInfo:function(callback, tvdbSeriesId) {
+    //thetvdb.com/api/0629B785CE550C8D/series/74845/all/en.zip
+    //thetvdb.com/api/0629B785CE550C8D/episodes/295369/en.xml
     if (cache[tvdbSeriesId]) {
       return done(null, cache[tvdbSeriesId]);
     }

@@ -7,9 +7,9 @@
   },
   "dependencies": {
     "async": "~0.1",
-    "node.io": "latest",
-    "xml2js": "0.x",
-    "sax": "0.1.x",
+    "node.io": "git://github.com/catesandrew/node.io.git",
+    "tvdb": "git://github.com/catesandrew/node-tvdb.git",
+    "plist": "git://github.com/catesandrew/node-plist.git",
     "node-zip": "0.x",
     "underscore": "latest",
     "commander": "latest"

@@ -1,10 +1,17 @@
+#!/usr/bin/env node
+
 var async = require('async')
   , fs = require('fs')
   , _ = require('underscore')
+  , program = require('commander')
   , nodeio = require('node.io');
 
-var constants = require('./tv-shows-constants.js').constants;
 var utils = require('./utils.js').utils;
+program
+  .version('0.1')
+  .description('Get the latest Season and Episode for a given show id')
+  .option('-s, --show-id <id>', 'eztv show id')
+  .parse(process.argv);
 
 var scrapeEZTV = function(_callback, showId) {
   var methods = {
@@ -66,9 +73,8 @@ var readPlistsAndScrapeEZTV = function(callback, showId) {
     });
 };
 
-var args = process.argv.slice(2);
-if (args && args.length > 0) {
-  var showId = args[0];
+if (program.showId) {
+  var showId = program.showId;
 
   readPlistsAndScrapeEZTV(function(err, data) {
     if (err) { console.log(err); }
@@ -89,9 +95,13 @@ if (args && args.length > 0) {
         maxSeason = seasonNo;
         maxEpisode = episodeNo;
       }
-
     });
 
-    console.log("#{"+maxSeason+"}-#{"+maxEpisode+"}");
+    console.log("S{"+maxSeason+"}-E{"+maxEpisode+"}");
   }, showId);
+}
+else {
+  console.log(program.description());
+  console.log("Version: " + program.version());
+  console.log(program.helpInformation());
 }

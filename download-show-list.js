@@ -142,9 +142,9 @@ readPlistsAndScrapeEZTV(function(err, data) {
     known_shows = _.values(known_shows);
 
     // merge the shows_to_add to known_shows
-    for( var i=0, l=shows_to_add.length; i<l; i++) {
-      known_shows.push(shows_to_add[i]);
-    } 
+    _.each(shows_to_add, function(show_to_add){
+      known_shows.push(show_to_add);
+    });
     // set shows to known_shows
     shows = known_shows;
   }

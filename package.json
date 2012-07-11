@@ -5,11 +5,17 @@
     "node": "0.6.15",
     "npm":  "1.1.9"
   },
+  "scripts": {
+    "preinstall": "rm -Rf node_modules/node.io/vendor",
+    "postinstall": "mkdir node_modules/node.io/vendor; mv node_modules/soupselect node_modules/node.io/vendor/; mv node_modules/validator node_modules/node.io/vendor/"
+  },
   "dependencies": {
     "async": "~0.1",
     "node.io": "git://github.com/catesandrew/node.io.git",
     "tvdb": "git://github.com/catesandrew/node-tvdb.git",
     "plist": "git://github.com/catesandrew/node-plist.git",
+    "soupselect": "git://github.com/harryf/node-soupselect.git#2de2537",
+    "validator": "git://github.com/chriso/node-validator.git#9b34de1",
     "node-zip": "0.x",
     "underscore": "latest",
     "commander": "latest"

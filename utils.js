@@ -1015,6 +1015,7 @@ EpisodeInfo.prototype = {
       'Status':'status',
       'Subscribed':'subscribed',
       'ShowId':'showId',
+      'FileName':'filename',
       'Season':'seasonnumber'
     };
 
@@ -1104,7 +1105,8 @@ NoSeasonEpisodeInfo.prototype = {
       'ExactName':'exactname',
       'Status':'status',
       'Subscribed':'subscribed',
-      'ShowId':'showId'
+      'ShowId':'showId',
+      'FileName':'filename'
     };
 
     var obj = utils.extendMap(mapping, {}, this);
@@ -1202,6 +1204,7 @@ DatedEpisodeInfo.prototype = {
       'Status':'status',
       'Subscribed':'subscribed',
       'ShowId':'showId',
+      'FileName':'filename',
       'Year':'year',
       'Month':'month',
       'Day':'day'
@@ -1268,6 +1271,7 @@ AnimeEpisodeInfo.prototype = {
       'Status':'status',
       'Subscribed':'subscribed',
       'ShowId':'showId',
+      'FileName':'filename',
       'Group':'group'
     };
 

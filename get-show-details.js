@@ -85,10 +85,10 @@ var scrapeEZTV = function(_callback, showId) {
             //_callback(err); 
           }
           else {
-            // TODO copy this over automatically!!
             episode_info.showId = episode.showId;
-            episode_info.size = episode.size;
-            episode_info.torrents = episode.torrents;
+            // TODO: Don't think we need these, remove if not
+            //episode_info.size = episode.size;
+            //episode_info.torrents = episode.torrents;
             emits.push(episode_info);
           }
         }, episode.text);
@@ -241,23 +241,20 @@ if (program.showId) {
     if (loloepisode) {
       // Do the magic here. We found a possible 
       // show to download that has been subscribed to.
-      verbose('Found show ' + key + ', in lolo episodes');
+      verbose('Found show ' + showId + ', in lolo episodes');
       _.each(loloepisode, function(loepisode, index) {
         var known_show = known_shows[showId];
         // for now, just use the first one, who cares about
         // getting the highest quality available.
         var incoming_episode = loepisode[0];
 
-        if (utils.isNoEpisodeInfo(known_show)) {
-          // TODO This should get copied over automatially!!
-          // till then..., copy over known properties
-          incoming_episode.status = known_show.status;
-          incoming_episode.exactname = known_show.exactname;
-          incoming_episode.subscribed = known_show.subscribed;
-        }
-        shows.push(incoming_episode.toPlist([
-          ["FileName", "filename"]
-        ]));
+        //if (utils.isNoEpisodeInfo(known_show)) {
+          // TODO: Don't think we need these, remove if not
+          //incoming_episode.status = known_show.status;
+          //incoming_episode.exactname = known_show.exactname;
+          //incoming_episode.subscribed = known_show.subscribed;
+        //}
+        shows.push(incoming_episode.toPlist());
       });
     } 
     

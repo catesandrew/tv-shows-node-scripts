@@ -313,6 +313,7 @@ var calcPadding = function(num) {
   }
 };
 
+
 // used for tvdb
 var cache = {};
 
@@ -535,6 +536,14 @@ Utils.prototype = {
     var episode_numbers, episode, series_name,
         year, month, day;
 
+    var keyMapping = {
+      'exactname':'ExactName',
+      'status':'Status',
+      'subscribed':'Subscribed',
+      'showId':'ShowId',
+      'seriesname':'HumanName'
+    };
+
     year = null;
     month = null;
     day = null;
@@ -557,60 +566,76 @@ Utils.prototype = {
       episode_numbers = [new Date(year, month-1, day)];
     }
     else {
-      episode = new NoEpisodeInfo({
-        exactname: show.ExactName,
-        status: show.Status,
-        subscribed: show.Subscribed,
-        showId: show.ShowId,
-        seriesname: show.HumanName
-      });
+      var obj = {};
+      var mapping = _.extend({}, keyMapping);
+
+      obj = utils.extendMap(mapping, obj, show);
+      episode = new NoEpisodeInfo(obj);
       return callback(null, episode);
     }
 
     if (show.Season) {
-      episode = new EpisodeInfo({
-        exactname: show.ExactName,
-        status: show.Status,
-        subscribed: show.Subscribed,
-        showId: show.ShowId,
-        seriesname: show.HumanName,
-        seasonnumber: parseInt(show.Season, 10),
+      var obj = {
         episodenumbers: episode_numbers
+      };
+      var mapping = _.extend({}, keyMapping, {
+        'seasonnumber': 'Season'
       });
+      
+      // the { 'seasonnumber': 'Season' } above in the mapping
+      // prevent Season from being copied over since we
+      // want it to be copied over to seasonnumber.
+      obj = utils.extendMap(mapping, obj, show);
+      // delete Episode since it will get output using
+      // the toPlist() and is derived from episodenumbers.
+      delete obj.Episode;
+      // Now parse the season 
+      obj.seasonnumber = parseInt(show.Season, 10); 
+      episode = new EpisodeInfo(obj);
     }
     else if (show.Year && show.Month && show.Day) {
-      episode = new DatedEpisodeInfo({
-        exactname: show.ExactName,
-        status: show.Status,
-        subscribed: show.Subscribed,
-        showId: show.ShowId,
-        seriesname: show.HumanName,
-        episodenumbers: episode_numbers,
+      var obj = {
+        episodenumbers: episode_numbers
+      };
+      var mapping = _.extend({}, keyMapping, {
+        'year': 'Year',
+        'month': 'Month',
+        'day': 'Day'
+      });
+      // prevent Year, Month, Day from being copied
+      // over as properties in preference to them
+      // being copied over as year, month, day props.
+      // Basically they'll be copied over as year,
+      // month, day, but we'll reset that afterwards.
+      obj = utils.extendMap(mapping, obj, show);
+      // now set the yeaer, month, day props
+      obj = _.extend(obj, {
         year: year,
         month: month,
         day: day
       });
+      episode = new DatedEpisodeInfo(obj);
     }
     else if (show.Group) {
-      episode = new AnimeEpisodeInfo({
-        exactname: show.ExactName,
-        status: show.Status,
-        subscribed: show.Subscribed,
-        showId: show.ShowId,
-        seriesname: show.HumanName,
-        episodenumbers: episode_numbers,
-        group: show.Group
+      var obj = {
+        episodenumbers: episode_numbers
+      };
+      var mapping = _.extend({}, keyMapping, {
+        'group':'Group'
       });
+      obj = utils.extendMap(mapping, obj, show);
+      episode = new AnimeEpisodeInfo(obj);
     }
     else {
-      episode = new NoSeasonEpisodeInfo({
-        exactname: show.ExactName,
-        status: show.Status,
-        subscribed: show.Subscribed,
-        showId: show.ShowId,
-        seriesname: show.HumanName,
-        episodenumbers: episode_numbers
-      });
+      var obj = {
+        'episodenumbers':episode_numbers
+      };
+      var mapping = _.extend({}, keyMapping);
+      obj = utils.extendMap(mapping, obj, show);
+      // delete Episode since it will get output using
+      // the toPlist() and is derived from episodenumbers.
+      delete obj.Episode;
+      episode = new NoSeasonEpisodeInfo(obj);
     }
     return callback(null, episode);
   },
@@ -908,16 +933,42 @@ Utils.prototype = {
     }
 
     return cost[n][m];  
+  },
+  extendMap : function(mapping, destination, source) {
+    var copyTo = function(dkey, skey, dest, src) {
+      var val = src[skey];
+      if (!_.isNull(val) && !_.isUndefined(val)) {
+        if (_.isDate(val) || _.isBoolean(val) || _.isNumber(val) || _.isString(val)) {
+          dest[dkey] = val;
+        } else if (!_.isEmpty(val)) {
+          dest[dkey] = val;
+        }
+      }
+    };
+
+    // copy over the mapped keys to their mapped equivalent first
+    _.each(mapping, function(value, key) {
+      copyTo(key, value, destination, source);
+    });
+
+    // copy over non-mapped keys, aka, as-is
+    var mappedKeys = _.values(mapping),
+        srcKeys = _.keys(source);
+    _.each(srcKeys, function(key) {
+      if (_.indexOf(mappedKeys, key) < 0) { // its not in there
+        copyTo(key, key, destination, source);
+      }
+    });
+
+    return destination;
   }
 };
 var utils = new Utils();
 exports.utils = utils;
 
-
 function EpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
-
   return this;
 }
 EpisodeInfo.prototype = {
@@ -957,32 +1008,30 @@ EpisodeInfo.prototype = {
     this.episodenumbers = episodeInfo.episodenumbers;
     this.seasonnumber = episodeInfo.seasonnumber;
   },
-  toPlist:function(additional_optionals) {
-    // Format episode number into string, or a list
-    var epno = utils.formatEpisodeNumbers(this.episodenumbers);
-    var optionals = [
-      ["ExactName", "exactname"],
-      ["Status", "status"],
-      ["Subscribed", "subscribed"],
-      ["ShowId", "showId"]
-    ];
-    _.extend(optionals, additional_optionals);
-    var obj = {}, that = this;
-    _.each(optionals, function(optional, index) {
-      if ( typeof(that[optional[1]]) !== "undefined" ) {
-        obj[optional[0]] = that[optional[1]];
-      }
-    });
+  toPlist:function() {
+    var mapping = {
+      'HumanName':'seriesname',
+      'ExactName':'exactname',
+      'Status':'status',
+      'Subscribed':'subscribed',
+      'ShowId':'showId',
+      'Season':'seasonnumber'
+    };
 
+    var obj = utils.extendMap(mapping, {}, this);
+    // We output episodenumbers as Episode
+    delete obj.episodenumbers;
+    
+    // Format episode number into string, or a list
+    var epno = utils.formatEpisodeNumbers(this.episodenumbers),
+        pad = calcPadding(this.seasonnumber);
     var lastSeen = "S: " + 
-      ('00' + this.seasonnumber).slice(-2) +
+      (pad.padding + this.seasonnumber).slice(pad.len) +
       ", E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
 
     return _.extend({
-      HumanName: this.seriesname,
       Episode: epno,
-      Season: this.seasonnumber,
       LastSeen: lastSeen
     }, obj);
   },
@@ -1023,7 +1072,6 @@ EpisodeInfo.prototype = {
 function NoSeasonEpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
-
   return this;
 }
 NoSeasonEpisodeInfo.prototype = {
@@ -1050,28 +1098,25 @@ NoSeasonEpisodeInfo.prototype = {
     }
     this.episodenumbers = noSeasonEpisodeInfo.episodenumbers;
   },
-  toPlist:function(additional_optionals) {
+  toPlist:function() {
+    var mapping = {
+      'HumanName':'seriesname',
+      'ExactName':'exactname',
+      'Status':'status',
+      'Subscribed':'subscribed',
+      'ShowId':'showId'
+    };
+
+    var obj = utils.extendMap(mapping, {}, this);
+    // We output episodenumbers as Episode
+    delete obj.episodenumbers;
+
     // Format episode number into string, or a list
     var epno = utils.formatEpisodeNumbers(this.episodenumbers);
-    var optionals = [
-      ["ExactName", "exactname"],
-      ["Status", "status"],
-      ["Subscribed", "subscribed"],
-      ["ShowId", "showId"]
-    ];
-    _.extend(optionals, additional_optionals);
-    var obj = {}, that = this;
-    _.each(optionals, function(optional, index) {
-      if ( typeof(that[optional[1]]) !== "undefined" ) {
-        obj[optional[0]] = that[optional[1]];
-      }
-    });
-
     var lastSeen = "E: " +
         utils.formatEpisodeNumbers(this.episodenumbers);
 
     return _.extend({
-      HumanName: this.seriesname,
       Episode: epno,
       LastSeen: lastSeen
     }, obj);
@@ -1103,7 +1148,6 @@ NoSeasonEpisodeInfo.prototype = {
 function DatedEpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
-
   return this;
 }
 DatedEpisodeInfo.prototype = {
@@ -1151,21 +1195,23 @@ DatedEpisodeInfo.prototype = {
     this.day = datedEpisodeInfo.day;
     this.episodenumbers = datedEpisodeInfo.episodenumbers;
   },
-  toPlist:function(additional_optionals) {
-    var optionals = [
-      ["ExactName", "exactname"],
-      ["Status", "status"],
-      ["Subscribed", "subscribed"],
-      ["ShowId", "showId"]
-    ];
-    _.extend(optionals, additional_optionals);
-    var obj = {}, that = this;
-    _.each(optionals, function(optional, index) {
-      if ( typeof(that[optional[1]]) !== "undefined" ) {
-        obj[optional[0]] = that[optional[1]];
-      }
-    });
+  toPlist:function() {
+    var mapping = {
+      'HumanName':'seriesname',
+      'ExactName':'exactname',
+      'Status':'status',
+      'Subscribed':'subscribed',
+      'ShowId':'showId',
+      'Year':'year',
+      'Month':'month',
+      'Day':'day'
+    };
 
+    var obj = utils.extendMap(mapping, {}, this);
+    // We output episodenumbers as Year, Month, and Day
+    delete obj.episodenumbers;
+
+    // build Last Seen
     var copy = _.map(this.episodenumbers, function(date) {
       return ('00' + (date.getMonth()+1)).slice(-2) +
         "-" + 
@@ -1176,10 +1222,6 @@ DatedEpisodeInfo.prototype = {
     var lastSeen = "E: " + copy.join(', ');
 
     return _.extend({
-      HumanName: this.seriesname,
-      Year: this.year,
-      Month: this.month,
-      Day: this.day,
       LastSeen: lastSeen
     }, obj);
   },
@@ -1211,7 +1253,6 @@ DatedEpisodeInfo.prototype = {
 function AnimeEpisodeInfo(opts) {
   opts = opts || {};
   _.extend(this, opts);
-
   return this;
 }
 AnimeEpisodeInfo.prototype = {
@@ -1220,33 +1261,29 @@ AnimeEpisodeInfo.prototype = {
       ", E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
   },
-  toPlist:function(additional_optionals) {
-    var optionals = [
-      ["ExactName", "exactname"],
-      ["Status", "status"],
-      ["Subscribed", "subscribed"],
-      ["ShowId", "showId"]
-    ];
-    _.extend(optionals, additional_optionals);
-    var obj = {}, that = this;
-    _.each(optionals, function(optional, index) {
-      if ( typeof(that[optional[1]]) !== "undefined" ) {
-        obj[optional[0]] = that[optional[1]];
-      }
-    });
+  toPlist:function() {
+    var mapping = {
+      'HumanName':'seriesname',
+      'ExactName':'exactname',
+      'Status':'status',
+      'Subscribed':'subscribed',
+      'ShowId':'showId',
+      'Group':'group'
+    };
+
+    var obj = utils.extendMap(mapping, {}, this);
+    // We output episodenumbers as Year, Month, and Day
+    delete obj.episodenumbers;
     
     // Format episode number into string, or a list
     var epno = utils.formatEpisodeNumbers(this.episodenumbers);
     if (epno) {
       obj.Episode = epno;
     }
-
     var lastSeen = "E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
 
     return _.extend({
-      HumanName: this.seriesname,
-      Group: this.group,
       LastSeen: lastSeen
     }, obj);
   },
@@ -1282,24 +1319,16 @@ NoEpisodeInfo.prototype = {
   equals:function(noEpisodeInfo) {
     return this.seriesname === noEpisodeInfo.seriesname;
   },
-  toPlist:function(additional_optionals) {
-    var optionals = [
-      ["ExactName", "exactname"],
-      ["Status", "status"],
-      ["Subscribed", "subscribed"],
-      ["ShowId", "showId"]
-    ];
-    _.extend(optionals, additional_optionals);
-    var obj = {}, that = this;
-    _.each(optionals, function(optional, index) {
-      if ( typeof(that[optional[1]]) !== "undefined" ) {
-        obj[optional[0]] = that[optional[1]];
-      }
-    });
+  toPlist:function() {
+    var mapping = {
+      'HumanName':'seriesname',
+      'ExactName':'exactname',
+      'Status':'status',
+      'Subscribed':'subscribed',
+      'ShowId':'showId'
+    };
 
-    return _.extend({
-      HumanName: this.seriesname
-    }, obj);
+    return utils.extendMap(mapping, {}, this);
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series

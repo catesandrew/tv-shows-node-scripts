@@ -32,7 +32,7 @@ var verbose = function() {
 
 if (program.seriesId && program.path) {
   var seriesId = program.seriesId;
-  var base_dir = program.path;
+  var base_dir = utils.expandHomeDir(program.path);
 
   utils.getSeriesInfo(function(err, result) {
     if (err) { 
@@ -97,7 +97,7 @@ if (program.seriesId && program.path) {
         process.stdin.destroy();
       });
     }
-  }, showId);
+  }, seriesId);
 }
 else {
   console.log(program.description());

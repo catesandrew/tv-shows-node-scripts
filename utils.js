@@ -241,7 +241,11 @@ var downloadTorrent = function(callback, downloadfile, dir) {
   if (host === "www.bt-chat.com") {
     return callback("bt-chat.com is banned");
   }
-  var filename = url.parse(downloadfile).pathname.split("/").pop();
+  var filename = url.parse(downloadfile).pathname;
+  if (!filename) {
+    return callback("filename is corrupt: " + downloadfile);
+  }
+  filename = filename.split("/").pop();
 
   var theurl = http.createClient(80, host);
   //console.log("Downloading file: " + filename);

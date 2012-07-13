@@ -262,65 +262,68 @@ if (program.showId && program.fileName) {
         // getting the highest quality available.
         var incoming_episode = loepisode[0];
 
-        if (utils.isNoEpisodeInfo(known_show)) {
-          // copy over everything from known show into incoming episode
-          // but not seasonnumber, episodenumbers, etc...
-          var mappings = ['seriesname', 'seasonnumber', 'group',
-              'episodenumbers', 'year', 'month', 'day', 'showId',
-              'filename', 'torrents'];
-
-          var knownKeys = _.keys(known_show);
-          _.each(knownKeys, function(key) {
-            if (_.indexOf(mappings, key) < 0) { // its not in there
-              utils.copyTo(key, key, incoming_episode, known_show);
-            }
-          });
-          
-          // download
-          var torrents = incoming_episode.torrents;
-          // some of the things we know come with incoming_episode
-          // that we don't want to store into known show
-          delete incoming_episode.torrents;
-          delete incoming_episode.size;
-          delete incoming_episode.filename;
-          
-          verbose('Processing ' + incoming_episode.toString());
-          utils.downloadTorrents(function(err, data) {
-            if (err) {
-              // should we update the show info?
-              verbose("Error: " + err);
-              
-              innerCb(); // advance to the next loepisode 
-            } else {
-              verbose("Success: " + data);
-              
-              // replace known show with incoming episode
-              known_shows[showId] = incoming_episode;
-
-              innerCb(); // advance to the next loepisode
-            }
-          }, torrents, torrent_dir);
-        }
-        else if (incoming_episode.compare(known_show) > 0) {
+        if (incoming_episode.compare(data.episode) > 0) {
           // the incoming_episode is newer than the latest known show
           
-          // download
-          verbose('Processing ' + incoming_episode.toString());
-          utils.downloadTorrents(function(err, data) {
-            if (err) {
-              // should we update the show info?
-              verbose("Error: " + err);
+          if (utils.isNoEpisodeInfo(known_show)) {
+            // copy over everything from known show into incoming episode
+            // but not seasonnumber, episodenumbers, etc...
+            var mappings = ['seriesname', 'seasonnumber', 'group',
+                'episodenumbers', 'year', 'month', 'day', 'showId',
+                'filename', 'torrents'];
 
-              innerCb();// advance to the next loepisode 
-            } else {
-              verbose("Success: " + data);
+            var knownKeys = _.keys(known_show);
+            _.each(knownKeys, function(key) {
+              if (_.indexOf(mappings, key) < 0) { // its not in there
+                utils.copyTo(key, key, incoming_episode, known_show);
+              }
+            });
+            
+            // download
+            var torrents = incoming_episode.torrents;
+            // some of the things we know come with incoming_episode
+            // that we don't want to store into known show
+            delete incoming_episode.torrents;
+            delete incoming_episode.size;
+            delete incoming_episode.filename;
+            
+            verbose('Processing ' + incoming_episode.toString());
+            utils.downloadTorrents(function(err, data) {
+              if (err) {
+                // should we update the show info?
+                verbose("Error: " + err);
+                
+                innerCb(); // advance to the next loepisode 
+              } else {
+                verbose("Success: " + data);
+                
+                // replace known show with incoming episode
+                known_shows[showId] = incoming_episode;
 
-              // update known_show to latest version
-              known_show.updateTo(incoming_episode);
+                innerCb(); // advance to the next loepisode
+              }
+            }, torrents, torrent_dir);
+          } 
+          else {
+          
+            // download
+            verbose('Processing ' + incoming_episode.toString());
+            utils.downloadTorrents(function(err, data) {
+              if (err) {
+                // should we update the show info?
+                verbose("Error: " + err);
 
-              innerCb(); // advance to the next loepisode 
-            }
-          }, incoming_episode.torrents, torrent_dir);
+                innerCb();// advance to the next loepisode 
+              } else {
+                verbose("Success: " + data);
+
+                // update known_show to latest version
+                known_show.updateTo(incoming_episode);
+
+                innerCb(); // advance to the next loepisode 
+              }
+            }, incoming_episode.torrents, torrent_dir);
+          }
         }
         else {
           innerCb(); // advance

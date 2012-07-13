@@ -86,7 +86,7 @@ var scrapeEZTV = function(_callback, showId) {
           }
           else {
             episode_info.showId = episode.showId;
-            // TODO: Don't think we need these, remove if not
+            // Don't think we need these
             //episode_info.size = episode.size;
             //episode_info.torrents = episode.torrents;
             emits.push(episode_info);
@@ -249,7 +249,7 @@ if (program.showId) {
         var incoming_episode = loepisode[0];
 
         //if (utils.isNoEpisodeInfo(known_show)) {
-          // TODO: Don't think we need these, remove if not
+          // Don't think we need these, remove if not
           //incoming_episode.status = known_show.status;
           //incoming_episode.exactname = known_show.exactname;
           //incoming_episode.subscribed = known_show.subscribed;

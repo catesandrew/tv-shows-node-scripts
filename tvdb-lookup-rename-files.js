@@ -84,7 +84,7 @@ if (program.seriesId && program.path) {
           console.log('Choose the closest match: [ "' + title + '" ]');
           program.choose(str_nears, function(i) {
             verbose('You chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
-            // TODO: rename the incoming title now
+            // rename the incoming title now
             fs.renameSync(base_dir + filename, base_dir + obj_nears[i].episode.toFileName() + " - " + title + extension);
             next();
           });

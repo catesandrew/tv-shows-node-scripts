@@ -85,10 +85,10 @@ var scrapeEZTV = function(_callback, showId) {
             //_callback(err); 
           }
           else {
-            // TODO: need auto merging!
             episode_info.showId = episode.showId;
-            episode_info.size = episode.size;
             episode_info.torrents = episode.torrents;
+            // Don't think we need this, remove if not
+            //episode_info.size = episode.size;
             emits.push(episode_info);
           }
         }, episode.text);
@@ -255,7 +255,7 @@ if (program.showId && program.fileName) {
     if (loloepisode) {
       // Do the magic here. We found a possible 
       // show to download that has been subscribed to.
-      verbose('Found show ' + key + ', in lolo episodes');
+      verbose('Found show ' + showId + ', in lolo episodes');
       async.forEachSeries(loloepisode, function(loepisode, innerCb) {
         var known_show = known_shows[showId];
         // for now, just use the first one, who cares about
@@ -263,17 +263,31 @@ if (program.showId && program.fileName) {
         var incoming_episode = loepisode[0];
 
         if (utils.isNoEpisodeInfo(known_show)) {
-          // TODO: need auto merging!
-          // till then..., copy over known properties
-          incoming_episode.status = known_show.status;
-          incoming_episode.exactname = known_show.exactname;
-          incoming_episode.subscribed = true;
+          // copy over everything from known show into incoming episode
+          // but not seasonnumber, episodenumbers, etc...
+          var mappings = ['seriesname', 'seasonnumber', 'group',
+              'episodenumbers', 'year', 'month', 'day', 'showId',
+              'filename', 'torrents'];
+
+          var knownKeys = _.keys(known_show);
+          _.each(knownKeys, function(key) {
+            if (_.indexOf(mappings, key) < 0) { // its not in there
+              utils.copyTo(key, key, incoming_episode, known_show);
+            }
+          });
           
           // download
+          var torrents = incoming_episode.torrents;
+          // some of the things we know come with incoming_episode
+          // that we don't want to store into known show
+          delete incoming_episode.torrents;
+          delete incoming_episode.size;
+          delete incoming_episode.filename;
+          
           verbose('Processing ' + incoming_episode.toString());
           utils.downloadTorrents(function(err, data) {
             if (err) {
-              // TODO should we update the show info?
+              // should we update the show info?
               verbose("Error: " + err);
               
               innerCb(); // advance to the next loepisode 
@@ -285,7 +299,7 @@ if (program.showId && program.fileName) {
 
               innerCb(); // advance to the next loepisode
             }
-          }, incoming_episode.torrents, torrent_dir);
+          }, torrents, torrent_dir);
         }
         else if (incoming_episode.compare(known_show) > 0) {
           // the incoming_episode is newer than the latest known show
@@ -294,7 +308,7 @@ if (program.showId && program.fileName) {
           verbose('Processing ' + incoming_episode.toString());
           utils.downloadTorrents(function(err, data) {
             if (err) {
-              // TODO: should we update the show info?
+              // should we update the show info?
               verbose("Error: " + err);
 
               innerCb();// advance to the next loepisode 

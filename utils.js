@@ -935,20 +935,9 @@ Utils.prototype = {
     return cost[n][m];  
   },
   extendMap : function(mapping, destination, source) {
-    var copyTo = function(dkey, skey, dest, src) {
-      var val = src[skey];
-      if (!_.isNull(val) && !_.isUndefined(val)) {
-        if (_.isDate(val) || _.isBoolean(val) || _.isNumber(val) || _.isString(val)) {
-          dest[dkey] = val;
-        } else if (!_.isEmpty(val)) {
-          dest[dkey] = val;
-        }
-      }
-    };
-
     // copy over the mapped keys to their mapped equivalent first
     _.each(mapping, function(value, key) {
-      copyTo(key, value, destination, source);
+      utils.copyTo(key, value, destination, source);
     });
 
     // copy over non-mapped keys, aka, as-is
@@ -956,11 +945,21 @@ Utils.prototype = {
         srcKeys = _.keys(source);
     _.each(srcKeys, function(key) {
       if (_.indexOf(mappedKeys, key) < 0) { // its not in there
-        copyTo(key, key, destination, source);
+        utils.copyTo(key, key, destination, source);
       }
     });
 
     return destination;
+  },
+  copyTo : function(dkey, skey, dest, src) {
+    var val = src[skey];
+    if (!_.isNull(val) && !_.isUndefined(val)) {
+      if (_.isDate(val) || _.isBoolean(val) || _.isNumber(val) || _.isString(val)) {
+        dest[dkey] = val;
+      } else if (!_.isEmpty(val)) {
+        dest[dkey] = val;
+      }
+    }
   }
 };
 var utils = new Utils();
@@ -1062,8 +1061,7 @@ EpisodeInfo.prototype = {
     var epdata = {
       'seriesname': this.seriesname,
       'seasonnumber': this.seasonnumber,
-      'episode': epno,
-      'episodename': this.episodename,
+      'episode': epno
     };
 
     return epdata;
@@ -1347,11 +1345,8 @@ NoEpisodeInfo.prototype = {
     });
   },
   getepdata:function() {
-    var epno = utils.formatEpisodeNumbers(this.episodenumbers);
-
     var epdata = {
-      'seriesname': this.seriesname,
-      'episode': epno
+      'seriesname': this.seriesname
     };
 
     return epdata;

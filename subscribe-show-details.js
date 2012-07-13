@@ -53,7 +53,7 @@ var scrapeEZTV = function(_callback, showId) {
               if (torrent.indexOf("magnet") === 0) {
                 continue;
               }
-              torrents.push(torrent);
+              torrents.push(utils.unescape(torrent));
             }
           }
 

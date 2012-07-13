@@ -71,7 +71,7 @@ var scrapeEZTV = function(_callback) {
               if (torrent.indexOf("magnet") === 0) {
                 continue;
               }
-              torrents.push(torrent);
+              torrents.push(utils.unescape(torrent));
             }
           }
 

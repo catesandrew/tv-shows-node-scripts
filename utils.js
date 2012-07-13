@@ -244,10 +244,9 @@ var downloadTorrent = function(callback, downloadfile, dir) {
   var filename = url.parse(downloadfile).pathname.split("/").pop();
 
   var theurl = http.createClient(80, host);
-  var requestUrl = downloadfile;
   //console.log("Downloading file: " + filename);
-  //console.log("Before download request");
-  var request = theurl.request('GET', requestUrl, {"host": host});
+  //console.log("Request URL: " + encodeURI(filename));
+  var request = theurl.request('GET', encodeURI(downloadfile), {"host": host});
   request.end();
 
   // We actually want the file to be stored in memory and then
@@ -259,7 +258,15 @@ var downloadTorrent = function(callback, downloadfile, dir) {
     //console.log("Status Code: " + response.statusCode);
     //console.log("HEADERS: " + JSON.stringify(response.headers));
     //console.log("File size: " + response.headers['content-length'] + " bytes.");
-    var fileSize = response.headers['content-length'];
+    var statusCode = response.statusCode;
+    if (!_.isNull(statusCode) && !_.isUndefined(statusCode)) {
+      if (_.isNumber(statusCode)) {
+        if (statusCode === 404) {
+          return callback('404: ' + JSON.stringify(response.headers));
+        }
+      } 
+    }
+    var fileSize = response.headers['content-length']; // string like 785 bytes
     if ( !fileSize ) {
       return callback("No Content Length");
     }
@@ -313,9 +320,11 @@ var calcPadding = function(num) {
   }
 };
 
-
 // used for tvdb
 var cache = {};
+
+// unescape regex cache
+var unescape_regex_cache = {};
 
 var Utils = function(){};
 Utils.prototype = {
@@ -960,6 +969,28 @@ Utils.prototype = {
         dest[dkey] = val;
       }
     }
+  },
+  unescape: function(str) {
+    str = str || "";
+    var mapping = {
+      "&lt;": "<",
+      "&gt;": ">",
+      "&quot;": '"',
+      "&#x27;": "'",
+      "&#x60;": "`",
+      "&amp;" : "&"
+    };
+    _.each(mapping, function(value, key) {
+      var re;
+      if (!unescape_regex_cache[key]) {
+        re = new RegExp(key, "gi");
+        unescape_regex_cache[key] = re;
+      } else {
+        re = unescape_regex_cache[key];
+      }
+      str = str.replace(re,value);
+    });
+    return str;
   }
 };
 var utils = new Utils();

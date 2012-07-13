@@ -299,6 +299,8 @@ if (program.showId && program.fileName) {
                 
                 // replace known show with incoming episode
                 known_shows[showId] = incoming_episode;
+                // subscribe to the show
+                known_shows[showId].subscribed = true;
 
                 innerCb(); // advance to the next loepisode
               }
@@ -319,6 +321,8 @@ if (program.showId && program.fileName) {
 
                 // update known_show to latest version
                 known_show.updateTo(incoming_episode);
+                // subscribe to the show
+                known_show.subscribed = true;
 
                 innerCb(); // advance to the next loepisode 
               }

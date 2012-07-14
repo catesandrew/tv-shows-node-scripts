@@ -18,6 +18,7 @@
     "validator": "git://github.com/chriso/node-validator.git#9b34de1",
     "node-zip": "0.x",
     "underscore": "latest",
-    "commander": "latest"
+    "commander": "latest",
+    "progress": "latest"
   }
 }

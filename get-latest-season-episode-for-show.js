@@ -84,7 +84,7 @@ if (program.showId) {
   var showId = program.showId;
 
   readPlistsAndScrapeEZTV(function(err, data) {
-    if (err) { console.log(err); }
+    if (err) { console.error(err); }
 
     _.each(data.episodes, function(episode) {
       verbose(episode.toString());

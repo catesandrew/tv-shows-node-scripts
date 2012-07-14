@@ -27,7 +27,7 @@ if (program.seriesName) {
 
   utils.findTvShow(function(err, tvshows) {
     if (err) { 
-      console.log(err);
+      console.error(err);
     }
     else {
       console.log(tvshows);

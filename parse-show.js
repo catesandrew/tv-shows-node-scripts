@@ -26,7 +26,7 @@ if (program.fileName) {
   var fileName = program.fileName;
   utils.parseFile(function(err, episode_info) {
     if (err) { 
-      console.log(err);
+      console.error(err);
     }
     else {
       console.log(episode_info);

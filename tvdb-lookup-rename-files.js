@@ -36,7 +36,7 @@ if (program.seriesId && program.path) {
 
   utils.getSeriesInfo(function(err, result) {
     if (err) { 
-      console.log(err);
+      console.error(err);
     }
     else {
       //var incoming = ["13 - Bugs Bunny Gets the Boid", "13 - Rabbit Fire", "01 - Baseball Bugs", "02 - Dough for the Do-Do"];

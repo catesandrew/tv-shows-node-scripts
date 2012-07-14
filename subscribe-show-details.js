@@ -81,7 +81,7 @@ var scrapeEZTV = function(_callback, showId) {
       episodes.forEach(function(episode) {
         utils.parseFile(function(err, episode_info) {
           if (err) { 
-            console.log(err);
+            console.error(err);
             //_callback(err); 
           }
           else {
@@ -124,7 +124,7 @@ var readPlistsAndScrapeEZTV = function(callback, showId, fileName) {
       episode: function(callback) {
         utils.parseFile(function(err, episode_info) {
           if (err) { 
-            console.log(err);
+            console.error(err);
           }
           else {
             episode_info.showId = showId;
@@ -344,7 +344,7 @@ if (program.showId && program.fileName) {
 
         var plist_file = utils.expandHomeDir("~/Library/Application Support/TVShows/TVShows.plist");
         utils.writePlist(function(err, obj) {
-          if (err) { console.log(err); }
+          if (err) { console.error(err); }
           }, { "Shows": shows, "Version": "1" }, plist_file
         );
       });

@@ -27,23 +27,11 @@ if (program.seriesId) {
   var seriesId = program.seriesId;
   utils.getSeriesInfo(function(err, result) {
     if (err) { 
-      console.log(err);
+      console.error(err);
     }
     else {
       _.each(result.episodes, function(episode) {
-        console.log(episode.toPlist([
-          [ 'ImdbId', 'ImdbId' ],
-          [ 'SeriesId', 'TvdbSeriesId' ],
-          [ 'EpisodeId', 'TvdbEpisodeId' ],
-          [ 'Overview', 'Overview' ],
-          [ 'EpisodeName', 'EpisodeName' ],
-          [ 'Episode', 'Episode' ],
-          [ 'Director', 'Director' ],
-          [ 'Season', 'Season' ],
-          [ 'Writer', 'Writer' ],
-          [ 'Artwork', 'Artwork' ],
-          [ 'FirstAired', 'FirstAiredOn' ]
-        ]));
+        console.log(episode.toPlist());
       });
     }
   }, seriesId);

@@ -99,7 +99,7 @@ var scrapeEZTV = function(_callback) {
       episodes.forEach(function(episode) {
         utils.parseFile(function(err, episode_info) {
           if (err) { 
-            console.log(err);
+            console.error(err);
             //_callback(err); 
           }
           else {
@@ -183,7 +183,7 @@ var sleep = function(s) {
 sleep(10);
 
 readPlistsAndScrapeEZTV(function(err, data) {
-  if (err) { console.log(err); }
+  if (err) { console.error(err); }
 
   verbose('---- Incoming Shows ----');
   _.each(data.episodes, function(episode) {
@@ -412,7 +412,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
 
     var plist_file = utils.expandHomeDir(program.tvShows);
     utils.writePlist(function(err, obj) {
-      if (err) { console.log(err); }
+      if (err) { console.error(err); }
       }, { "Shows": shows, "Version": "1" }, plist_file
     );
   });

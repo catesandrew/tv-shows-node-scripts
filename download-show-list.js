@@ -62,7 +62,7 @@ var scrapeEZTV = function(_callback) {
         };
         // parse it into an Episode derivative
         utils.parseShow(function(err, episode) {
-          if (err) { console.log(err); }
+          if (err) { console.error(err); }
           else {
             emit.push(episode);
           }
@@ -106,7 +106,7 @@ var readPlistsAndScrapeEZTV = function(callback) {
 
 readPlistsAndScrapeEZTV(function(err, data) {
   if (err) { 
-    console.log(err);
+    console.error(err);
     process.exit();
   }
  
@@ -172,7 +172,7 @@ readPlistsAndScrapeEZTV(function(err, data) {
 
   var tv_shows_db = utils.expandHomeDir(program.tvShows);
   utils.writePlist(function(err, obj) {
-    if (err) { console.log(err); }
+    if (err) { console.error(err); }
     verbose(obj);
     
     }, save_these_shows, tv_shows_db

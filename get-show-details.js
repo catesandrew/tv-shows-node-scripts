@@ -258,11 +258,9 @@ if (program.showId) {
       });
     } 
     
-    // 5) save the updated known shows list 
-    shows = _.sortBy(shows, function(show) { 
-      return show.HumanName; 
-    });
-
+    // 5) sort in descending order
+    shows = utils.sortByString(shows, "LastSeen");
+    
     console.log(utils.exportToPlist(shows));
 
   }, showId);

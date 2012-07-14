@@ -304,7 +304,7 @@ var strcmp = function( str1, str2 ) {
   // *     example 2: strcmp( 'owald', 'waldo' );
   // *     returns 2: -1
 
-  return ( ( str1 == str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
+  return ( ( str1 === str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
 };
 
 var calcPadding = function(num) {
@@ -995,6 +995,26 @@ Utils.prototype = {
       str = str.replace(re,value);
     });
     return str;
+  },
+  sortByString:function(list, key) {
+    // http://stackoverflow.com/questions/5013819/reverse-sort-order-with-backbone-js
+    //
+    // The Underscore.js method _.sortBy ends up "wrapping" up javascript
+    // .sort() in a way that makes sorting strings in reverse difficult. Simple
+    // negation of the string ends up returning NaN and breaks the sort.
+    //
+    // If you need to perform a reverse sort with Strings, such as reverse
+    // alphabetical sort, here's a really hackish way of doing it:
+
+    return _.sortBy(list, function(item) { 
+      var str = item[key] || "";
+      str = str.toLowerCase();
+      str = str.split("");
+      str = _.map(str, function(letter) { 
+        return String.fromCharCode(-(letter.charCodeAt(0)));
+      });
+      return str;
+    });
   }
 };
 var utils = new Utils();
@@ -1198,15 +1218,15 @@ DatedEpisodeInfo.prototype = {
     //var episodenumbers = copy.join(', ');
 
     var copy = _.map(this.episodenumbers, function(date) {
-      return ('00' + (date.getMonth()+1)).slice(-2) +
+      return date.getFullYear() +
         "-" + 
-        ('00' + date.getDate()).slice(-2) +
+        ('00' + (date.getMonth()+1)).slice(-2) +
         "-" + 
-        date.getFullYear();
+        ('00' + date.getDate()).slice(-2);
     });
 
     return this.seriesname + 
-      ", E: " +
+      ", D: " +
       copy.join(', ');
   },
   equals:function(datedEpisodeInfo) {
@@ -1249,13 +1269,13 @@ DatedEpisodeInfo.prototype = {
 
     // build Last Seen
     var copy = _.map(this.episodenumbers, function(date) {
-      return ('00' + (date.getMonth()+1)).slice(-2) +
+      return date.getFullYear() +
         "-" + 
-        ('00' + date.getDate()).slice(-2) +
+        ('00' + (date.getMonth()+1)).slice(-2) +
         "-" + 
-        date.getFullYear();
+        ('00' + date.getDate()).slice(-2);
     });
-    var lastSeen = "E: " + copy.join(', ');
+    var lastSeen = "D: " + copy.join(', ');
 
     return _.extend({
       LastSeen: lastSeen

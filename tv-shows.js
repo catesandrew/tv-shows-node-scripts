@@ -298,7 +298,6 @@ readPlistsAndScrapeEZTV(function(err, data) {
   //
   _.each(loloepisodes, function(value, key ,list) {
     var result = _.sortBy(value, function(list) {
-      // use  -list[0].toString() to sort descending
       return list[0].toString();
     });
     loloepisodes[key] = result; 

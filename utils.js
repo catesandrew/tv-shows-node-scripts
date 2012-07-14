@@ -996,7 +996,7 @@ Utils.prototype = {
     });
     return str;
   },
-  sortByString:function(list, key) {
+  descSortByStr:function(obj, val, context) {
     // http://stackoverflow.com/questions/5013819/reverse-sort-order-with-backbone-js
     //
     // The Underscore.js method _.sortBy ends up "wrapping" up javascript
@@ -1006,8 +1006,9 @@ Utils.prototype = {
     // If you need to perform a reverse sort with Strings, such as reverse
     // alphabetical sort, here's a really hackish way of doing it:
 
-    return _.sortBy(list, function(item) { 
-      var str = item[key] || "";
+    var iterator = _.isFunction(val) ? val : function(obj) { return obj[val]; };
+    return _.sortBy(obj, function(item) { 
+      var str = iterator.call(context, item);
       str = str.toLowerCase();
       str = str.split("");
       str = _.map(str, function(letter) { 

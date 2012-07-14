@@ -220,9 +220,8 @@ if (program.showId) {
     //       torrents: [Object] } ] ]
     //
     _.each(loloepisodes, function(value, key ,list) {
-      var result = _.sortBy(value, function(list) {
-        // use  -list[0].toString() to sort descending
-        return -list[0].toString();
+      var result = utils.descSortByStr(value, function(list) {
+        return list[0].toString();
       });
       loloepisodes[key] = result; 
     });
@@ -259,7 +258,7 @@ if (program.showId) {
     } 
     
     // 5) sort in descending order
-    shows = utils.sortByString(shows, "LastSeen");
+    shows = utils.descSortByStr(shows, "LastSeen");
     
     console.log(utils.exportToPlist(shows));
 

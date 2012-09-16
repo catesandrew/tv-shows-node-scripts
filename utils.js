@@ -1086,10 +1086,10 @@ EpisodeInfo.prototype = {
       ", E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
 
-    return _.extend({
+    return _.extend(obj, {
       Episode: epno,
       LastSeen: lastSeen
-    }, obj);
+    });
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -1172,10 +1172,10 @@ NoSeasonEpisodeInfo.prototype = {
     var lastSeen = "E: " +
         utils.formatEpisodeNumbers(this.episodenumbers);
 
-    return _.extend({
+    return _.extend(obj, {
       Episode: epno,
       LastSeen: lastSeen
-    }, obj);
+    });
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -1278,9 +1278,9 @@ DatedEpisodeInfo.prototype = {
     });
     var lastSeen = "D: " + copy.join(', ');
 
-    return _.extend({
+    return _.extend(obj, {
       LastSeen: lastSeen
-    }, obj);
+    });
   },
   populateFromTvDb:function(tvdb, forceName, seriesId) {
     // Queries the node-tvdb instance for episode name and corrected series
@@ -1341,9 +1341,9 @@ AnimeEpisodeInfo.prototype = {
     var lastSeen = "E: " +
       utils.formatEpisodeNumbers(this.episodenumbers);
 
-    return _.extend({
+    return _.extend(obj, {
       LastSeen: lastSeen
-    }, obj);
+    });
   },
   equals:function(animeEpisodeInfo) {
     return this.seriesname === animeEpisodeInfo.seriesname &&

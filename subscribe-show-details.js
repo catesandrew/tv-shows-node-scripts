@@ -151,11 +151,11 @@ if (program.showId && program.fileName) {
       verbose("ShowId: " + episode.showId + ", Size: " + episode.size);
       verbose(episode.toString());
     });
-    verbose('---- Known Shows ----');
-    _.each(data.plists.showDb.Shows, function(episode) {
-      verbose("ShowId: " + episode.showId);
-      verbose(episode.toString());
-    });
+    //verbose('---- Known Shows ----');
+    //_.each(data.plists.showDb.Shows, function(episode) {
+      //verbose("ShowId: " + episode.showId);
+      //verbose(episode.toString());
+    //});
     verbose('---- Incoming Show ----');
     verbose("ShowId: " + data.episode.showId);
     verbose(data.episode.toString());
@@ -168,6 +168,13 @@ if (program.showId && program.fileName) {
       var key = known_episode.showId;
       known_shows[key] = known_episode;
     });
+
+    // locate known show
+    var known_show = known_shows[showId];
+    if (!known_show) {
+      console.log("Show not found in list, update list of shows first!");
+      process.exit();
+    }
 
     // 2) group all similar eipsodes by 
     //   seriesname, seasonnumber, episodenumbers OR
@@ -256,12 +263,11 @@ if (program.showId && program.fileName) {
       // show to download that has been subscribed to.
       verbose('Found show ' + showId + ', in lolo episodes');
       async.forEachSeries(loloepisode, function(loepisode, innerCb) {
-        var known_show = known_shows[showId];
         // for now, just use the first one, who cares about
         // getting the highest quality available.
         var incoming_episode = loepisode[0];
 
-        if (incoming_episode.compare(data.episode) > 0) {
+        if (incoming_episode.compare(data.episode) >= 0) {
           // the incoming_episode is newer than the latest known show
           
           if (utils.isNoEpisodeInfo(known_show)) {

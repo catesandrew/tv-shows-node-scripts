@@ -74,6 +74,9 @@ if (program.seriesId && program.path) {
           str_nears = [];
           obj_nears = [];
 
+          str_nears.push("Continue without renaming");
+          obj_nears.push({});
+
           _.each(levs, function(obj) {
             if ( Math.abs(obj.lev - lev_val) < 6) {
               str_nears.push("Lev: " + obj.lev + ", " + obj.episode.toString() + ", EpisodeName: " + obj.episode.EpisodeName);
@@ -83,10 +86,15 @@ if (program.seriesId && program.path) {
 
           console.log('Choose the closest match: [ "' + title + '" ]');
           program.choose(str_nears, function(i) {
-            verbose('You chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
-            // rename the incoming title now
-            fs.renameSync(base_dir + filename, base_dir + obj_nears[i].episode.toFileName() + " - " + title + extension);
-            next();
+            if (i === 0) {
+              verbose('You chose to continue');
+              next();
+            } else {
+              verbose('You chose %d "%s"', i, obj_nears[i].episode.EpisodeName);
+              // rename the incoming title now
+              fs.renameSync(base_dir + filename, base_dir + obj_nears[i].episode.toFileName() + " - " + title + extension);
+              next();
+            }
           });
         } else {
           next();
